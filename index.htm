@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>OFA 配達アプリ（Web：MAP/近い順/必須入力）</title>
+<title>OFA 配達アプリ（点呼→集荷→リスト→地図→日報）</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,29 +13,30 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
-<!-- Barcode (ZXing) -->
+<!-- Barcode -->
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
 
-<!-- OCR (Tesseract) -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
-
-<!-- Map (Leaflet + OSM tiles) -->
+<!-- Map -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<!-- Sortable (Drag reorder) -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
 <style>
   :root{
-    --ofa-yellow:#FFD400;
-    --ofa-red:#E53935;
-    --ofa-blue:#1565C0;
-
-    --bg:#F5F7FB;
+    --r:18px;
+    --bg:#f6f8ff;
     --card:#fff;
     --ink:#0f172a;
     --muted:#64748b;
-    --line:#e2e8f0;
-    --shadow:0 12px 34px rgba(15,23,42,.10);
-    --r:18px;
+    --line:#e5e7eb;
+
+    --red:#E53935;
+    --yellow:#FFD400;
+    --blue:#1565C0;
+
+    --shadow:0 14px 40px rgba(15,23,42,.12);
   }
   *{box-sizing:border-box}
   body{
@@ -43,14 +44,14 @@
     font-family:"Noto Sans JP",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     color:var(--ink);
     background:
-      radial-gradient(1000px 500px at 10% -10%, rgba(255,212,0,.35), transparent 60%),
-      radial-gradient(900px 480px at 100% 0%, rgba(21,101,192,.18), transparent 60%),
-      radial-gradient(900px 480px at 70% 110%, rgba(229,57,53,.10), transparent 60%),
+      radial-gradient(900px 500px at 10% -10%, rgba(255,212,0,.35), transparent 60%),
+      radial-gradient(900px 520px at 110% 0%, rgba(21,101,192,.18), transparent 60%),
+      radial-gradient(900px 520px at 60% 110%, rgba(229,57,53,.12), transparent 60%),
       var(--bg);
   }
   header{
     position:sticky; top:0; z-index:50;
-    background:rgba(255,255,255,.90);
+    background:rgba(255,255,255,.92);
     backdrop-filter: blur(10px);
     border-bottom:1px solid var(--line);
   }
@@ -61,14 +62,16 @@
   }
   .brand{display:flex; gap:10px; align-items:center;}
   .logo{
-    width:42px;height:42px;border-radius:14px;
-    background:linear-gradient(135deg,var(--ofa-yellow),#fff2a8);
+    width:44px;height:44px;border-radius:16px;
     display:grid; place-items:center;
     font-weight:900;
+    color:#111;
+    background:linear-gradient(135deg,var(--yellow),#fff2a8);
     box-shadow:0 12px 26px rgba(255,212,0,.25);
   }
   .ttl b{display:block; font-size:14px}
   .ttl small{display:block; color:var(--muted); font-size:11px; margin-top:2px}
+
   .chips{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
   .chip{
     display:inline-flex; align-items:center; gap:6px;
@@ -80,12 +83,15 @@
     white-space:nowrap;
   }
   .chip b{color:var(--ink)}
+
   nav{
     max-width:1200px; margin:0 auto;
     padding:0 14px 12px;
     display:flex; gap:10px;
+    overflow:auto;
   }
   .tab{
+    min-width:120px;
     flex:1;
     padding:12px 10px;
     border-radius:16px;
@@ -95,10 +101,11 @@
     font-size:12px;
     box-shadow:0 10px 22px rgba(15,23,42,.06);
     cursor:pointer;
+    white-space:nowrap;
   }
   .tab.active{
-    background:linear-gradient(135deg, rgba(21,101,192,.10), rgba(255,212,0,.18));
-    border-color:rgba(21,101,192,.25);
+    border-color:rgba(21,101,192,.28);
+    background:linear-gradient(135deg, rgba(255,212,0,.28), rgba(21,101,192,.10));
   }
 
   main{max-width:1200px; margin:0 auto; padding:12px 14px 18px; display:grid; gap:12px;}
@@ -110,11 +117,12 @@
     box-shadow:var(--shadow);
   }
   .card h2{margin:0 0 10px; font-size:14px}
+  .mini{color:var(--muted); font-size:11px; line-height:1.6}
   .row{display:grid; gap:10px}
   @media(min-width:880px){
-    .row.two{grid-template-columns: 1fr 1fr;}
-    .row.three{grid-template-columns: 1fr 1fr 1fr;}
-    .row.four{grid-template-columns: 1fr 1fr 1fr 1fr;}
+    .row.two{grid-template-columns:1fr 1fr}
+    .row.three{grid-template-columns:1fr 1fr 1fr}
+    .row.four{grid-template-columns:1fr 1fr 1fr 1fr}
   }
   label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
   input, select, textarea{
@@ -135,18 +143,19 @@
     cursor:pointer;
     font-size:13px;
   }
-  .btn-primary{background:linear-gradient(135deg,var(--ofa-yellow),#ffe77a); color:#111;}
-  .btn-blue{background:linear-gradient(135deg, rgba(21,101,192,.95), rgba(21,101,192,.75)); color:#fff;}
-  .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--ink);}
-  .btn-ok{background:rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.25); color:#065f46;}
-  .btn-warn{background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.25); color:#7c2d12;}
-  .btn-bad{background:rgba(239,68,68,.10); border:1px solid rgba(239,68,68,.25); color:#7f1d1d;}
-  .mini{color:var(--muted); font-size:11px; line-height:1.6}
+  .btnY{background:linear-gradient(135deg,var(--yellow),#ffe77a); color:#111;}
+  .btnB{background:linear-gradient(135deg, rgba(21,101,192,.95), rgba(21,101,192,.75)); color:#fff;}
+  .btnR{background:linear-gradient(135deg, rgba(229,57,53,.95), rgba(229,57,53,.75)); color:#fff;}
+  .btnG{background:#fff; border:1px solid var(--line); color:var(--ink);}
+  .btnOK{background:rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.25); color:#065f46;}
+  .btnW{background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.25); color:#7c2d12;}
+
   .hr{height:1px; background:var(--line); margin:12px 0}
 
+  /* Pickup scan area */
   .scanWrap{
-    border:1px dashed rgba(21,101,192,.28);
-    background:linear-gradient(135deg, rgba(21,101,192,.05), rgba(255,212,0,.12));
+    border:1px dashed rgba(21,101,192,.26);
+    background:linear-gradient(135deg, rgba(255,212,0,.18), rgba(21,101,192,.08));
     border-radius:18px;
     padding:12px;
   }
@@ -160,43 +169,29 @@
   }
   video{width:100%; height:auto; display:block;}
 
-  .kindBar{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
-  .kindBtn{
-    padding:10px 12px;
-    border-radius:999px;
-    border:1px solid var(--line);
-    background:#fff;
-    font-weight:900;
-    font-size:12px;
-    cursor:pointer;
-  }
-  .kindBtn.active{
-    background:linear-gradient(135deg, rgba(255,212,0,.35), rgba(21,101,192,.10));
-    border-color:rgba(255,212,0,.55);
-  }
-
-  .toolbar{
-    display:flex; flex-wrap:wrap; gap:10px;
-    align-items:flex-end; justify-content:space-between;
-  }
-  .kpis{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px}
-  .kpi{
-    background:#fff;
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:10px 12px;
-    box-shadow:0 10px 22px rgba(15,23,42,.06);
-    min-width:130px;
-  }
-  .kpi small{display:block; color:var(--muted); font-size:11px}
-  .kpi b{display:block; font-size:18px; margin-top:2px}
-
+  /* List + Swipe (simple) */
   .list{display:grid; gap:10px; margin-top:12px}
-  .item{
-    border:1px solid var(--line);
+  .swipe{
+    position:relative;
     border-radius:18px;
-    padding:12px;
+    border:1px solid var(--line);
+    overflow:hidden;
     background:#fff;
+  }
+  .swipeBack{
+    position:absolute; inset:0;
+    display:flex; justify-content:flex-end; gap:8px;
+    padding:10px;
+    background:linear-gradient(135deg, rgba(229,57,53,.10), rgba(21,101,192,.06));
+    align-items:center;
+  }
+  .swipeFront{
+    position:relative;
+    background:#fff;
+    padding:12px;
+    transform:translateX(0px);
+    transition:transform .15s ease;
+    touch-action:pan-y;
   }
   .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
   .tag{
@@ -209,9 +204,8 @@
   .st-out{background:rgba(21,101,192,.10); border-color:rgba(21,101,192,.22); color:#0b3a7a}
   .st-done{background:rgba(16,185,129,.10); border-color:rgba(16,185,129,.22); color:#065f46}
   .st-absent{background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.25); color:#7c2d12}
-  .st-post{background:rgba(99,102,241,.10); border-color:rgba(99,102,241,.22); color:#3730a3}
-  .st-return{background:rgba(239,68,68,.08); border-color:rgba(239,68,68,.22); color:#7f1d1d}
 
+  .meta{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.55}
   .badge{
     display:inline-flex; align-items:center; gap:6px;
     padding:4px 10px; border-radius:999px;
@@ -221,14 +215,12 @@
     font-size:12px;
     margin-right:8px;
   }
-  .meta{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.55}
-  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
-  .btn-mini{padding:10px 10px; border-radius:14px; font-size:12px;}
+  .danger{color:#b45309; font-weight:900}
 
   /* Map */
   #map{
     width:100%;
-    height:65vh;
+    height:66vh;
     border-radius:18px;
     border:1px solid var(--line);
     overflow:hidden;
@@ -237,7 +229,7 @@
   /* Modal */
   .modalBack{
     position:fixed; inset:0; z-index:9990;
-    background:rgba(15,23,42,.40);
+    background:rgba(15,23,42,.42);
     display:none;
     align-items:flex-end;
     justify-content:center;
@@ -254,29 +246,33 @@
     overflow:auto;
   }
   .modal h3{margin:0 0 10px; font-size:14px}
-  .pillRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px}
-  .pill{
-    padding:8px 10px; border-radius:999px;
-    border:1px solid var(--line);
-    background:#fff;
-    font-weight:900; font-size:12px;
-    cursor:pointer;
-  }
-  .pill.active{background:linear-gradient(135deg, rgba(255,212,0,.30), rgba(21,101,192,.10)); border-color:rgba(255,212,0,.55)}
-  .progress{
-    height:10px; border-radius:999px; border:1px solid var(--line);
-    background:#f8fafc; overflow:hidden;
-  }
-  .bar{height:100%; width:0%; background:linear-gradient(90deg, var(--ofa-yellow), var(--ofa-blue));}
-
   .warnBox{
-    background:rgba(245,158,11,.10);
+    background:rgba(245,158,11,.12);
     border:1px solid rgba(245,158,11,.25);
     color:#7c2d12;
     border-radius:16px;
     padding:10px 12px;
     font-weight:900;
     font-size:12px;
+  }
+
+  /* Toast */
+  #toast{
+    position:fixed;
+    left:50%;
+    bottom:22px;
+    transform:translateX(-50%);
+    background:rgba(15,23,42,.92);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:999px;
+    font-weight:900;
+    font-size:12px;
+    box-shadow:0 14px 30px rgba(0,0,0,.18);
+    z-index:9999;
+    opacity:0;
+    transition:opacity .2s ease;
+    pointer-events:none;
   }
 </style>
 </head>
@@ -287,614 +283,519 @@
     <div class="brand">
       <div class="logo">OFA</div>
       <div class="ttl">
-        <b>配達アプリ（MAP/近い順/必須入力）</b>
-        <small>SCAN → 住所/名前 → 地図ピン → タップで完了/不在 → 日報</small>
+        <b>OFA 配達アプリ（Web）</b>
+        <small>①点呼 → ②集荷（必須入力）→ ③リスト（スワイプ/並替）→ ④地図（現在地周辺）→ ⑤日報</small>
       </div>
     </div>
     <div class="chips">
       <div class="chip">GPS：<b id="gpsState">未取得</b></div>
+      <div class="chip">ピン：<b id="pinState">未作成</b></div>
       <div class="chip">ライト：<b id="torchState">未対応</b></div>
-      <div class="chip">並び：<b id="sortState">未設定</b></div>
     </div>
   </div>
 
   <nav>
-    <button class="tab active" data-tab="scan">SCAN</button>
-    <button class="tab" data-tab="list">リスト</button>
-    <button class="tab" data-tab="map">地図</button>
-    <button class="tab" data-tab="report">日報</button>
+    <button class="tab active" data-tab="tenko">① Web点呼</button>
+    <button class="tab" data-tab="pickup">② 集荷（SCAN）</button>
+    <button class="tab" data-tab="list">③ リスト</button>
+    <button class="tab" data-tab="map">④ 地図</button>
+    <button class="tab" data-tab="report">⑤ 日報</button>
   </nav>
 </header>
 
 <main>
 
-  <!-- SCAN -->
-  <section id="tab-scan" class="card">
-    <h2>① SCAN（最速登録 → あとで住所/名前を埋める）</h2>
+  <!-- ① TENKO -->
+  <section id="tab-tenko" class="card">
+    <h2>① Web点呼（開始/終了）</h2>
+
+    <div class="row three">
+      <div>
+        <label>日付</label>
+        <input id="tenkoDate" type="date">
+      </div>
+      <div>
+        <label>配達員名（必須）</label>
+        <input id="tenkoDriver" type="text" placeholder="例：森下 洸">
+      </div>
+      <div>
+        <label>車両番号（任意）</label>
+        <input id="tenkoCar" type="text" placeholder="例：鹿児島 123 あ 45-67">
+      </div>
+    </div>
+
+    <div class="row two" style="margin-top:10px;">
+      <div>
+        <label>アルコール（0.00 なら OK）</label>
+        <input id="tenkoAlcohol" inputmode="decimal" placeholder="0.00">
+      </div>
+      <div>
+        <label>健康状態</label>
+        <select id="tenkoHealth">
+          <option value="良好">良好</option>
+          <option value="やや不調">やや不調</option>
+          <option value="不調">不調</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row two" style="margin-top:10px;">
+      <div>
+        <label>点呼メモ</label>
+        <textarea id="tenkoMemo" placeholder="例：睡眠6h、問題なし"></textarea>
+      </div>
+      <div>
+        <label>操作</label>
+        <div class="btns">
+          <button class="btnB" id="btnGPS">📍GPS取得</button>
+          <button class="btnY" id="btnTenkoStart">▶ 業務開始</button>
+          <button class="btnR" id="btnTenkoEnd">⏹ 業務終了</button>
+        </div>
+        <div class="mini" style="margin-top:8px;">※点呼履歴は端末内保存（後でCSV/PDF出力も可能にできます）</div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="mini">
+      点呼が終わったら <b>②集荷（SCAN）</b> へ。
+    </div>
+  </section>
+
+  <!-- ② PICKUP -->
+  <section id="tab-pickup" class="card" style="display:none;">
+    <h2>② 集荷（SCAN → 必須入力 → 自動ピン）</h2>
 
     <div class="scanWrap">
       <div class="row three">
         <div>
           <label>配達日</label>
-          <input id="shipDate" type="date" />
+          <input id="shipDate" type="date">
         </div>
         <div>
-          <label>配達員名</label>
-          <input id="driver" type="text" placeholder="例：森下 洸" />
+          <label>配達員名（点呼から自動）</label>
+          <input id="driver" type="text" placeholder="例：森下 洸">
         </div>
         <div>
-          <label>取引先（任意）</label>
-          <input id="client" type="text" placeholder="例：ヤマト / 佐川 / Amazon…" />
+          <label>荷物種別</label>
+          <select id="kind">
+            <option>宅配</option>
+            <option>手紙（郵便物）</option>
+            <option>書類</option>
+            <option>ポスト投函</option>
+            <option>冷蔵・冷凍</option>
+            <option>代引</option>
+            <option>大物</option>
+            <option>壊れ物</option>
+            <option>医療品</option>
+            <option>建材</option>
+            <option>その他</option>
+          </select>
         </div>
-      </div>
-
-      <div class="hr"></div>
-
-      <div>
-        <div class="mini"><b>荷物種別（次にスキャンする荷物へ自動付与）</b></div>
-        <div class="kindBar" id="kindBar"></div>
       </div>
 
       <div class="hr"></div>
 
       <div class="row two">
         <div>
-          <label>手入力（読めない時）</label>
-          <input id="manualCode" type="text" placeholder="伝票番号（空ならTEMP）" />
-          <div class="mini" style="margin-top:6px;">※バーコードが弱い現場は「仮登録→配達前に住所/名前を埋める」運用が一番速い。</div>
+          <label>伝票番号（手入力）</label>
+          <input id="manualCode" type="text" placeholder="読めない場合はここに入力→追加">
+          <div class="mini" style="margin-top:6px;">
+            ※現場では <b>伝票番号</b> と <b>住所</b> で荷物を探す → なので登録時に必須入力します。
+          </div>
         </div>
         <div>
           <label>操作</label>
           <div class="btns">
-            <button class="btn-blue" id="btnGPS">📍GPS</button>
-            <button class="btn-primary" id="btnStartScan">📷SCAN開始</button>
-            <button class="btn-ghost" id="btnStopScan" style="display:none;">停止</button>
-            <button class="btn-ghost" id="btnTorch" disabled>🔦ライト</button>
+            <button class="btnB" id="btnStartScan">📷 SCAN開始</button>
+            <button class="btnG" id="btnStopScan" style="display:none;">停止</button>
+            <button class="btnG" id="btnTorch" disabled>🔦ライト</button>
+            <button class="btnY" id="btnAddManual">＋追加</button>
           </div>
         </div>
-      </div>
-
-      <div class="btns" style="margin-top:10px;">
-        <button class="btn-ghost" id="btnAddManual">＋手入力で追加</button>
-        <button class="btn-ghost" id="btnTemp">＋読めない→仮登録（TEMP）</button>
-        <button class="btn-ghost" id="btnGoFill">📝 住所/名前を埋める（未入力だけ）</button>
       </div>
 
       <div class="camBox" id="camBox">
         <video id="video" playsinline></video>
       </div>
+
+      <div class="hr"></div>
+      <div class="btns">
+        <button class="btnY" id="btnQuickAdd">＋ 伝票なしでも追加（仮番号）</button>
+        <button class="btnG" id="btnOpenList">→ ③リストへ</button>
+      </div>
+
+      <div class="mini" style="margin-top:8px;">
+        ✅ 追加したら <b>必須入力（名前/郵便番号/住所/電話）</b> 画面が必ず出ます。<br>
+        ✅ 郵便番号→住所は自動入力（編集OK） / ピンは自動（失敗時はピン修正）
+      </div>
     </div>
   </section>
 
-  <!-- LIST -->
+  <!-- ③ LIST -->
   <section id="tab-list" class="card" style="display:none;">
-    <h2>② リスト（近い順OK / 必須入力チェック付き）</h2>
+    <h2>③ リスト（スワイプ/並び替え/検索）</h2>
 
-    <div class="toolbar">
-      <div class="row four" style="margin:0; min-width:min(980px,100%);">
-        <div>
-          <label>日付</label>
-          <input id="filterDate" type="date" />
-        </div>
-        <div>
-          <label>状態</label>
-          <select id="filterStatus">
-            <option value="created">未持出</option>
-            <option value="out">持出</option>
-            <option value="done">完了</option>
-            <option value="absent">不在</option>
-            <option value="post">投函</option>
-            <option value="return">返却/キャンセル</option>
-            <option value="">すべて</option>
-          </select>
-        </div>
-        <div>
-          <label>並び替え</label>
-          <select id="sortMode">
-            <option value="createdAt">登録順</option>
-            <option value="distance">近い順（GPS必要）</option>
-          </select>
-        </div>
-        <div>
-          <label>検索（番号/名前/住所/種別）</label>
-          <input id="filterText" type="text" placeholder="例：相田 / 大正区 / 手紙 / 1234" />
-        </div>
+    <div class="row four">
+      <div>
+        <label>日付</label>
+        <input id="filterDate" type="date">
       </div>
-
-      <div class="btns">
-        <button class="btn-primary btn-mini" id="btnBulkOut">🚚持出一括</button>
-        <button class="btn-ghost btn-mini" id="btnGeoMissing">📌 住所→ピン作成（未作成のみ）</button>
-        <button class="btn-ghost btn-mini" id="btnNext">▶次の未完へ</button>
+      <div>
+        <label>状態</label>
+        <select id="filterStatus">
+          <option value="">すべて</option>
+          <option value="out">持出</option>
+          <option value="created">未持出</option>
+          <option value="done">完了</option>
+          <option value="absent">不在</option>
+        </select>
+      </div>
+      <div>
+        <label>検索（伝票/住所/名前/電話/郵便番号）</label>
+        <input id="filterText" type="text" placeholder="例：5300001 / 大正区 / 相田 / 090">
+      </div>
+      <div>
+        <label>操作</label>
+        <div class="btns">
+          <button class="btnB" id="btnBulkOut">🚚持出一括</button>
+          <button class="btnY" id="btnAutoPins">📌ピン自動作成</button>
+        </div>
       </div>
     </div>
 
-    <div class="kpis" id="kpis"></div>
-    <div class="list" id="historyList"></div>
+    <div class="hr"></div>
+    <div class="mini">
+      👆 リストは <b>ドラッグで順番変更</b> できます。<br>
+      👉 スワイプ（左へ）するとボタンが出る（完了/不在/地図/削除）
+    </div>
+
+    <div class="list" id="listBox"></div>
 
     <div class="hr"></div>
     <div class="btns">
-      <button class="btn-ghost" id="btnExportCSV">CSV出力</button>
-      <button class="btn-ghost" id="btnExportPDF">PDF出力</button>
-      <button class="btn-bad" id="btnClearAll">全削除（注意）</button>
+      <button class="btnG" id="btnExportCSV">CSV出力</button>
+      <button class="btnG" id="btnExportPDF">PDF出力</button>
+      <button class="btnR" id="btnClearAll">全削除</button>
     </div>
   </section>
 
-  <!-- MAP -->
+  <!-- ④ MAP -->
   <section id="tab-map" class="card" style="display:none;">
-    <h2>③ 地図（ピン→タップ→完了/不在）</h2>
-
+    <h2>④ 地図（常に現在地周辺・軽く・ピン見やすい）</h2>
     <div class="row two">
-      <div class="warnBox">
-        ✅ ピン表示には <b>住所→座標</b> が必要です。<br>
-        「📌住所→ピン作成」を押すと未作成のものを自動で作ります（無料のOSMジオコーディング使用）。
+      <div class="warnBox" style="margin-bottom:10px;">
+        ✅ ピンは自動作成します（住所→座標）。<br>
+        ❌ 立たない場合は <b>「ピン修正」</b> を押して地図クリック/ドラッグで修正できます。
       </div>
       <div class="btns" style="justify-content:flex-end;">
-        <button class="btn-blue" id="btnMapCenter">🎯 現在地へ</button>
-        <button class="btn-ghost" id="btnMapReload">🔄 ピン更新</button>
+        <button class="btnB" id="btnMapCenter">🎯 現在地へ</button>
+        <button class="btnY" id="btnMapRefresh">🔄 ピン更新</button>
       </div>
     </div>
 
-    <div style="margin-top:10px;" id="map"></div>
-
+    <div id="map"></div>
     <div class="mini" style="margin-top:10px;">
-      ※ナビはGoogleマップへ飛びます（最も安定）。<br>
-      ※OSM/Nominatimは無料のため、大量連続で住所変換すると遅くなることがあります（キャッシュします）。
+      ※重くならないように「表示範囲のピンのみ」描画します。<br>
+      ※ナビはGoogleマップに飛びます（現場で一番安定）。
     </div>
   </section>
 
-  <!-- REPORT -->
+  <!-- ⑤ REPORT -->
   <section id="tab-report" class="card" style="display:none;">
-    <h2>④ 日報（PDF/CSV）</h2>
+    <h2>⑤ 日報（PDF/CSV）</h2>
 
     <div class="row two">
       <div>
         <label>対象日</label>
-        <input id="reportDate" type="date" />
+        <input id="reportDate" type="date">
       </div>
       <div>
-        <label>配達員名（印字）</label>
-        <input id="reportDriver" type="text" placeholder="未入力ならSCANの配達員名" />
+        <label>配達員名（未入力なら点呼/集荷の値）</label>
+        <input id="reportDriver" type="text" placeholder="例：森下 洸">
       </div>
     </div>
 
-    <div class="kpis" id="reportKpis"></div>
-
     <div class="hr"></div>
     <div class="btns">
-      <button class="btn-primary" id="btnReportCSV">CSV出力（日報）</button>
-      <button class="btn-primary" id="btnReportPDF">PDF出力（日報）</button>
+      <button class="btnY" id="btnReportCSV">CSV（日報）</button>
+      <button class="btnB" id="btnReportPDF">PDF（日報）</button>
     </div>
   </section>
 
 </main>
 
-<!-- DETAIL / OCR Modal -->
+<!-- MODAL: 必須入力 + ピン修正 -->
 <div class="modalBack" id="modalBack" onclick="if(event.target.id==='modalBack') closeModal();">
   <div class="modal">
-    <h3 id="modalTitle">詳細</h3>
-    <div class="mini" id="modalSub"></div>
+    <h3 id="mTitle">必須入力</h3>
+    <div class="mini" id="mSub"></div>
 
     <div class="hr"></div>
 
-    <div id="requiredWarn" class="warnBox" style="display:none;">
-      ⚠️ <b>住所と名前が必須</b>です（完了/不在の前に入力してください）
+    <div class="warnBox" id="reqWarn" style="display:none;">
+      ⚠️ <b>名前 / 郵便番号 / 住所 / 電話番号</b> は必須です
     </div>
 
     <div class="row three" style="margin-top:10px;">
       <div>
-        <label>荷物コード（伝票/管理番号）</label>
-        <input id="mCode" />
+        <label>伝票番号</label>
+        <input id="mCode">
       </div>
       <div>
         <label>荷物種別</label>
-        <select id="mKind"></select>
+        <input id="mKind" disabled>
       </div>
       <div>
-        <label>受取人名（必須）</label>
-        <input id="mName" placeholder="例：相田 幸乃" />
+        <label>名前（必須）</label>
+        <input id="mName" placeholder="例：相田 幸乃">
       </div>
     </div>
 
     <div class="row three" style="margin-top:10px;">
-      <div style="grid-column:span 2;">
-        <label>住所（必須：ナビ/ピン用）</label>
-        <input id="mAddress" placeholder="例：大阪市大正区平尾4丁目17-3 川忠ビル" />
-      </div>
       <div>
-        <label>電話（任意）</label>
-        <input id="mPhone" placeholder="090…" />
+        <label>郵便番号（必須）</label>
+        <input id="mZip" inputmode="numeric" placeholder="例：5300001（ハイフン不要）">
+        <div class="btns" style="margin-top:8px;">
+          <button class="btnG" id="btnZipFill">〒→住所自動</button>
+        </div>
+      </div>
+      <div style="grid-column:span 2;">
+        <label>住所（必須）</label>
+        <input id="mAddr" placeholder="例：大阪市大正区平尾4丁目17-3 川忠ビル">
       </div>
     </div>
 
     <div class="row two" style="margin-top:10px;">
       <div>
-        <label>座標（ピン）</label>
-        <input id="mLatLng" placeholder="例：34.6699,135.4601（自動可）" />
-        <div class="btns" style="margin-top:8px;">
-          <button class="btn-ghost btn-mini" onclick="geoFromModal()">📌 住所→座標</button>
-          <button class="btn-ghost btn-mini" onclick="clearLatLng()">クリア</button>
-        </div>
+        <label>電話番号（必須）</label>
+        <input id="mPhone" inputmode="tel" placeholder="例：09012345678">
       </div>
       <div>
-        <label>メモ</label>
-        <textarea id="mMemo" placeholder="置き配・注意点など"></textarea>
+        <label>メモ（任意）</label>
+        <input id="mMemo" placeholder="置き配・注意点など">
       </div>
     </div>
 
     <div class="hr"></div>
 
-    <div>
-      <div class="mini"><b>詳細タグ（任意：複数）</b></div>
-      <div class="pillRow" id="tagPills"></div>
+    <div class="row two">
+      <div>
+        <label>ピン（自動）</label>
+        <input id="mLatLng" placeholder="例：34.6699,135.4601" disabled>
+        <div class="mini" id="mPinNote">自動作成します。失敗時は「ピン修正」</div>
+      </div>
+      <div class="btns" style="justify-content:flex-end; align-items:flex-end;">
+        <button class="btnY" id="btnMakePin">📌 ピン自動</button>
+        <button class="btnB" id="btnFixPin">🛠 ピン修正</button>
+      </div>
     </div>
 
     <div class="hr"></div>
 
     <div class="btns">
-      <button class="btn-blue" onclick="navFromModal()">🗺 ナビ（Google）</button>
-      <button class="btn-ghost" onclick="copyAddress()">📋 住所コピー</button>
-      <button class="btn-ghost" onclick="callPhone()">☎️ 電話</button>
-      <button class="btn-ghost" onclick="runOCRFile()">🅾️ 写真からOCR</button>
-      <button class="btn-ghost" onclick="captureOCRFromCamera()">📷 カメラからOCR</button>
-    </div>
-
-    <div style="margin-top:10px;">
-      <div class="mini"><b>OCR進捗</b></div>
-      <div class="progress"><div class="bar" id="ocrBar"></div></div>
-      <div class="mini" id="ocrStatus" style="margin-top:6px;">未実行</div>
-      <div class="pillRow" id="ocrCandidates" style="margin-top:10px;"></div>
-      <div class="mini" style="margin-top:6px;">※候補をタップすると「住所/名前/コード」に反映します。</div>
-    </div>
-
-    <div class="hr"></div>
-
-    <div class="btns">
-      <button class="btn-primary" onclick="saveModal()">保存</button>
-      <button class="btn-ok" onclick="doneFromModal()">完了/投函</button>
-      <button class="btn-warn" onclick="absentFromModal()">不在</button>
-      <button class="btn-bad" onclick="deleteFromModal()">削除</button>
-      <button class="btn-ghost" onclick="closeModal()">閉じる</button>
+      <button class="btnB" id="btnSave">保存</button>
+      <button class="btnOK" id="btnOut">持出</button>
+      <button class="btnOK" id="btnDone">完了</button>
+      <button class="btnW" id="btnAbsent">不在</button>
+      <button class="btnR" id="btnDel">削除</button>
+      <button class="btnG" onclick="closeModal()">閉じる</button>
     </div>
   </div>
 </div>
 
-<canvas id="capCanvas" style="display:none;"></canvas>
+<!-- MODAL: ピン修正用（地図クリック/ドラッグ） -->
+<div class="modalBack" id="pinBack" onclick="if(event.target.id==='pinBack') closePinModal();">
+  <div class="modal">
+    <h3>ピン修正（地図をクリック or ピンをドラッグ）</h3>
+    <div class="mini">決まったら「この位置で保存」</div>
+    <div class="hr"></div>
+    <div id="pinMap" style="height:58vh;border:1px solid var(--line);border-radius:18px;overflow:hidden;"></div>
+    <div class="hr"></div>
+    <div class="btns">
+      <button class="btnB" id="btnPinSave">この位置で保存</button>
+      <button class="btnG" onclick="closePinModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
 /* =========================
-   Storage / Const
+   Storage
 ========================= */
-const STORAGE_KEY = "ofa_delivery_app_v4_map";
-const GEO_CACHE_KEY = "ofa_geo_cache_v1"; // address -> {lat,lng,display}
-const STATUS = {
-  created: "未持出",
-  out: "持出",
-  done: "完了",
-  absent: "不在",
-  post: "投函",
-  return: "返却/キャンセル"
-};
-const statusClass = (s)=>({
-  created:"st-created",
-  out:"st-out",
-  done:"st-done",
-  absent:"st-absent",
-  post:"st-post",
-  return:"st-return"
-}[s]||"st-created");
+const STORE = "ofa_delivery_v5_pop";
+const TENKO = "ofa_tenko_v1";
+const GEO_CACHE = "ofa_geo_cache_v2"; // addressKey -> {lat,lng}
 
-const KINDS = [
-  "宅配","手紙（郵便物）","ポスト投函","書類","冷蔵・冷凍","代引","大物","壊れ物","医療品","建材","その他"
-];
-const TAGS = ["アパレル","雑貨","食品","医療","建材","精密機器","割れ物注意","時間指定","置き配","要サイン","要返送"];
+const STATUS = { created:"未持出", out:"持出", done:"完了", absent:"不在" };
+const statusClass = s => ({created:"st-created",out:"st-out",done:"st-done",absent:"st-absent"}[s]||"st-created");
 
-let gps = {lat:null, lng:null, at:null};
-let currentKind = "宅配";
-let list = load();
-let geoCache = loadGeoCache();
+let list = load(STORE, []);
+let tenkoLog = load(TENKO, []);
+let geoCache = load(GEO_CACHE, {});
 
-/* =========================
-   Helpers
-========================= */
-const pad = n => String(n).padStart(2,"0");
+function load(k, def){ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(def)); }catch{ return def; } }
+function save(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+function nowISO(){
+  const d=new Date(); const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function pad(n){ return String(n).padStart(2,"0"); }
 const today = new Date();
 const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-function nowISO(){
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-function uid(){
-  return "S" + Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
-function escapeHtml(s){
-  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
-}
-function load(){
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
-function loadGeoCache(){
-  try { return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || "{}"); } catch { return {}; }
-}
-function saveGeoCache(){
-  localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geoCache));
-}
-function normalizeCode(code){ return String(code||"").trim(); }
-function nextTempCode(){
-  const n = list.filter(x=>String(x.code||"").startsWith("TEMP-")).length + 1;
-  return `TEMP-${String(n).padStart(4,"0")}`;
-}
-function isDuplicate(shipDate, code){
-  return list.some(x => x.shipDate===shipDate && x.code===code);
-}
-function haversineKm(lat1, lon1, lat2, lon2){
-  const toRad = d => d * Math.PI / 180;
-  const R = 6371;
-  const dLat = toRad(lat2-lat1);
-  const dLon = toRad(lon2-lon1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return 2*R*Math.asin(Math.sqrt(a));
-}
-function parseLatLng(s){
-  const m = String(s||"").match(/(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)/);
-  if(!m) return null;
-  return {lat: Number(m[1]), lng: Number(m[3])};
+function uid(){ return "S"+Math.random().toString(16).slice(2)+Date.now().toString(16); }
+function esc(s){ return String(s||"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.style.opacity="1";
+  clearTimeout(window.__tt);
+  window.__tt=setTimeout(()=>t.style.opacity="0",1200);
 }
 
 /* =========================
-   Init UI
+   Tabs
 ========================= */
-document.getElementById("shipDate").value = todayStr;
-document.getElementById("filterDate").value = todayStr;
-document.getElementById("reportDate").value = todayStr;
-
-initKinds();
-initModalKinds();
-initTagPills();
-renderList();
-renderReport();
-
-/* Tabs */
 document.querySelectorAll(".tab").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     btn.classList.add("active");
-    const name = btn.dataset.tab;
+    const name=btn.dataset.tab;
     document.querySelectorAll("main section").forEach(sec=>sec.style.display="none");
     document.getElementById("tab-"+name).style.display="block";
+
     if(name==="list") renderList();
-    if(name==="report") renderReport();
-    if(name==="map") { ensureMap(); refreshMapPins(true); }
+    if(name==="map"){ ensureMap(); centerToGPS(true); refreshMapPins(true); }
   });
 });
 
-/* Filters */
-["filterDate","filterStatus","filterText"].forEach(id=>{
-  document.getElementById(id).addEventListener("input", renderList);
-});
-document.getElementById("sortMode").addEventListener("change", renderList);
+/* =========================
+   Defaults
+========================= */
+document.getElementById("tenkoDate").value = todayStr;
+document.getElementById("shipDate").value = todayStr;
+document.getElementById("filterDate").value = todayStr;
+document.getElementById("reportDate").value = todayStr;
 
 /* =========================
    GPS
 ========================= */
+let gps = {lat:null,lng:null};
 const gpsState = document.getElementById("gpsState");
 document.getElementById("btnGPS").addEventListener("click", getGPS);
-
 function getGPS(){
-  if(!navigator.geolocation){
-    toast("GPS非対応");
-    return;
-  }
-  gpsState.textContent = "取得中…";
+  if(!navigator.geolocation){ toast("GPS非対応"); return; }
+  gpsState.textContent="取得中…";
   navigator.geolocation.getCurrentPosition(
     (pos)=>{
-      gps.lat = pos.coords.latitude;
-      gps.lng = pos.coords.longitude;
-      gps.at = nowISO();
-      gpsState.textContent = "OK";
-      toast("GPS取得OK");
-      // 距離並びの再計算
-      renderList();
-      if(map){ centerToGPS(); }
+      gps.lat=pos.coords.latitude;
+      gps.lng=pos.coords.longitude;
+      gpsState.textContent="OK";
+      toast("GPS OK");
+      if(map) centerToGPS(false);
     },
-    ()=>{
-      gpsState.textContent = "失敗";
-      toast("GPS失敗：許可を確認");
-    },
-    { enableHighAccuracy:true, timeout:12000 }
+    ()=>{ gpsState.textContent="失敗"; toast("GPS失敗：許可を確認"); },
+    {enableHighAccuracy:true,timeout:12000}
   );
 }
 
 /* =========================
-   Kind buttons
+   ① TENKO
 ========================= */
-function initKinds(){
-  const bar = document.getElementById("kindBar");
-  bar.innerHTML = "";
-  const topKinds = ["宅配","手紙（郵便物）","ポスト投函","冷蔵・冷凍","代引","大物","壊れ物","書類","その他"];
-  topKinds.forEach(k=>{
-    const b = document.createElement("button");
-    b.className = "kindBtn" + (k===currentKind ? " active" : "");
-    b.textContent = k.replace("（郵便物）","");
-    b.onclick = ()=>{
-      currentKind = k;
-      [...bar.children].forEach(x=>x.classList.remove("active"));
-      b.classList.add("active");
-      toast("種別：" + k);
-    };
-    bar.appendChild(b);
-  });
-}
-function initModalKinds(){
-  const sel = document.getElementById("mKind");
-  sel.innerHTML = "";
-  KINDS.forEach(k=>{
-    const opt = document.createElement("option");
-    opt.value = k; opt.textContent = k;
-    sel.appendChild(opt);
-  });
-}
-function initTagPills(){
-  const box = document.getElementById("tagPills");
-  box.innerHTML = "";
-  TAGS.forEach(t=>{
-    const p = document.createElement("button");
-    p.className = "pill";
-    p.textContent = t;
-    p.onclick = ()=> p.classList.toggle("active");
-    box.appendChild(p);
-  });
-}
-
-/* =========================
-   Add shipment
-========================= */
-function getBaseFields(){
-  const shipDate = document.getElementById("shipDate").value || todayStr;
-  const driver = (document.getElementById("driver").value || "").trim();
-  const client = (document.getElementById("client").value || "").trim();
-  return { shipDate, driver, client };
-}
-
-function addShipment(code, forceTemp=false){
-  const base = getBaseFields();
-  let c = normalizeCode(code);
-
-  if(forceTemp || !c) c = nextTempCode();
-  if(isDuplicate(base.shipDate, c)) return false;
-
-  const item = {
-    id: uid(),
-    shipDate: base.shipDate,
-    driver: base.driver,
-    client: base.client,
-    kind: currentKind,
-    tags: [],
-    code: c,
-
-    // ✅必須項目（最初は空でもOK、完了/不在時に強制入力）
-    name: "",
-    address: "",
-    phone: "",
-    memo: "",
-
-    // ピン用
-    lat: null,
-    lng: null,
-    geoSource: "",
-
-    status: "created",
-    createdAt: nowISO(),
-    updatedAt: nowISO(),
-    history: [{at: nowISO(), action: "登録"}]
+document.getElementById("btnTenkoStart").addEventListener("click", ()=>{
+  const driver = document.getElementById("tenkoDriver").value.trim();
+  if(!driver){ toast("配達員名は必須"); return; }
+  const rec={
+    id:uid(),
+    type:"開始",
+    at:nowISO(),
+    date:document.getElementById("tenkoDate").value||todayStr,
+    driver,
+    car:document.getElementById("tenkoCar").value.trim(),
+    alcohol:document.getElementById("tenkoAlcohol").value.trim(),
+    health:document.getElementById("tenkoHealth").value,
+    memo:document.getElementById("tenkoMemo").value.trim(),
+    gps:(gps.lat&&gps.lng)?`${gps.lat},${gps.lng}`:""
   };
-  list.unshift(item);
-  save();
-  return true;
-}
+  tenkoLog.unshift(rec);
+  save(TENKO, tenkoLog);
 
-document.getElementById("btnAddManual").addEventListener("click", ()=>{
-  const v = document.getElementById("manualCode").value;
-  const ok = addShipment(v, false);
-  document.getElementById("manualCode").value = "";
-  toast(ok ? "追加しました" : "重複のためスキップ");
+  // 集荷画面へ反映
+  document.getElementById("driver").value = driver;
+  toast("業務開始（点呼OK）→ 集荷へ");
+  document.querySelector('[data-tab="pickup"]').click();
 });
-document.getElementById("btnTemp").addEventListener("click", ()=>{
-  addShipment("", true);
-  toast("仮登録（TEMP）");
-});
-document.getElementById("manualCode").addEventListener("keydown", (e)=>{
-  if(e.key==="Enter"){ e.preventDefault(); document.getElementById("btnAddManual").click(); }
-});
-document.getElementById("btnGoFill").addEventListener("click", ()=>{
-  // 未入力（住所or名前）を一番上から開く
-  const shipDate = document.getElementById("shipDate").value || todayStr;
-  const it = list.find(x=>x.shipDate===shipDate && (!x.address || !x.name));
-  if(!it){ toast("未入力なし"); return; }
-  openModal(it.id, true);
+document.getElementById("btnTenkoEnd").addEventListener("click", ()=>{
+  const driver = document.getElementById("tenkoDriver").value.trim();
+  if(!driver){ toast("配達員名は必須"); return; }
+  tenkoLog.unshift({id:uid(),type:"終了",at:nowISO(),date:document.getElementById("tenkoDate").value||todayStr,driver});
+  save(TENKO, tenkoLog);
+  toast("業務終了（保存）");
 });
 
 /* =========================
-   SCAN (ZXing)
+   ② PICKUP (Scan)
 ========================= */
 const torchState = document.getElementById("torchState");
-const btnTorch = document.getElementById("btnTorch");
+const pinState = document.getElementById("pinState");
+const video = document.getElementById("video");
+const camBox = document.getElementById("camBox");
 const btnStartScan = document.getElementById("btnStartScan");
 const btnStopScan = document.getElementById("btnStopScan");
-const camBox = document.getElementById("camBox");
-const video = document.getElementById("video");
+const btnTorch = document.getElementById("btnTorch");
 
-let stream = null;
-let track = null;
-let torch = false;
-let scanning = false;
-let lastVal = "";
-let lastAt = 0;
-
+let stream=null, track=null, torch=false, scanning=false;
 const codeReader = new ZXing.BrowserMultiFormatReader();
+let lastVal="", lastAt=0;
 
 btnStartScan.addEventListener("click", startScan);
 btnStopScan.addEventListener("click", stopScan);
 btnTorch.addEventListener("click", toggleTorch);
 
 async function startScan(){
-  if(!navigator.mediaDevices?.getUserMedia){
-    toast("カメラ非対応");
-    return;
-  }
-  camBox.style.display = "block";
-  btnStartScan.style.display = "none";
-  btnStopScan.style.display = "inline-block";
+  if(!navigator.mediaDevices?.getUserMedia){ toast("カメラ非対応"); return; }
+  camBox.style.display="block";
+  btnStartScan.style.display="none";
+  btnStopScan.style.display="inline-block";
 
   try{
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"environment" }, audio:false });
-    video.srcObject = stream;
+    stream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment"}, audio:false });
+    video.srcObject=stream;
     await video.play();
-
     track = stream.getVideoTracks()[0];
     updateTorchSupport();
-
   }catch(e){
     stopScan();
-    toast("カメラ起動失敗：HTTPS/許可を確認");
+    toast("カメラ起動失敗：HTTPS/許可確認");
     return;
   }
 
-  scanning = true;
+  scanning=true;
+  toast("SCAN中：伝票をかざして下さい");
   codeReader.decodeFromVideoElement(video, (result, err)=>{
     if(!scanning) return;
     if(result?.text){
-      const val = String(result.text).trim();
-      const now = Date.now();
-      if(val && (val !== lastVal || (now-lastAt) > 900)){
-        lastVal = val; lastAt = now;
-        const ok = addShipment(val, false);
-        if(ok) toast(`読み取り→追加：${val}`);
+      const val=String(result.text).trim();
+      const now=Date.now();
+      if(val && (val!==lastVal || (now-lastAt)>900)){
+        lastVal=val; lastAt=now;
+        quickCreateFromCode(val);
       }
     }
   });
-  toast("SCAN中：伝票をかざして下さい");
 }
-
 function stopScan(){
-  scanning = false;
-  btnStartScan.style.display = "inline-block";
-  btnStopScan.style.display = "none";
-  camBox.style.display = "none";
-
+  scanning=false;
+  btnStartScan.style.display="inline-block";
+  btnStopScan.style.display="none";
+  camBox.style.display="none";
   try{ codeReader.reset(); }catch{}
-  try{
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-  }catch{}
-  stream = null;
-  track = null;
-  torch = false;
-  btnTorch.disabled = true;
-  torchState.textContent = "未対応";
+  try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch{}
+  stream=null; track=null; torch=false;
+  btnTorch.disabled=true;
+  torchState.textContent="未対応";
 }
-
 function updateTorchSupport(){
   if(!track) return;
   const caps = (track.getCapabilities && track.getCapabilities()) ? track.getCapabilities() : null;
@@ -902,7 +803,6 @@ function updateTorchSupport(){
   btnTorch.disabled = !hasTorch;
   torchState.textContent = hasTorch ? "OFF" : "未対応";
 }
-
 async function toggleTorch(){
   if(!track){ toast("カメラ起動中のみ"); return; }
   const caps = (track.getCapabilities && track.getCapabilities()) ? track.getCapabilities() : null;
@@ -912,910 +812,691 @@ async function toggleTorch(){
   try{
     await track.applyConstraints({ advanced:[{ torch }] });
     torchState.textContent = torch ? "ON" : "OFF";
-    toast(torch ? "ライトON" : "ライトOFF");
-  }catch{
-    toast("ライト切替失敗");
-  }
+  }catch{ toast("ライト切替失敗"); }
 }
 
-/* =========================
-   Filters / Sort
-========================= */
-function applyFilters(listIn){
-  const d = document.getElementById("filterDate").value;
-  const st = document.getElementById("filterStatus").value;
-  const q = (document.getElementById("filterText").value || "").trim().toLowerCase();
-  return listIn.filter(x=>{
-    const okD = d ? x.shipDate === d : true;
-    const okS = st ? x.status === st : true;
-    const hay = `${x.code} ${x.name||""} ${x.address||""} ${x.client||""} ${x.kind||""} ${(x.tags||[]).join(" ")}`.toLowerCase();
-    const okQ = q ? hay.includes(q) : true;
-    return okD && okS && okQ;
-  });
+document.getElementById("btnAddManual").addEventListener("click", ()=>{
+  const code=document.getElementById("manualCode").value.trim();
+  if(!code){ toast("伝票番号を入力"); return; }
+  document.getElementById("manualCode").value="";
+  quickCreateFromCode(code);
+});
+document.getElementById("btnQuickAdd").addEventListener("click", ()=>{
+  const tmp = "TEMP-"+String(Date.now()).slice(-6);
+  quickCreateFromCode(tmp);
+});
+document.getElementById("btnOpenList").addEventListener("click", ()=> document.querySelector('[data-tab="list"]').click());
+
+function baseFields(){
+  return {
+    shipDate: document.getElementById("shipDate").value || todayStr,
+    driver: document.getElementById("driver").value.trim() || document.getElementById("tenkoDriver").value.trim(),
+    kind: document.getElementById("kind").value
+  };
 }
 
-function sortItems(items){
-  const mode = document.getElementById("sortMode").value;
-  if(mode==="distance"){
-    if(!(gps.lat && gps.lng)){
-      document.getElementById("sortState").textContent = "GPS必要";
-      return items;
-    }
-    document.getElementById("sortState").textContent = "近い順";
-    return items.slice().sort((a,b)=>{
-      const da = (a.lat && a.lng) ? haversineKm(gps.lat,gps.lng,a.lat,a.lng) : 999999;
-      const db = (b.lat && b.lng) ? haversineKm(gps.lat,gps.lng,b.lat,b.lng) : 999999;
-      return da - db;
-    });
-  }
-  document.getElementById("sortState").textContent = "登録順";
-  return items; // 既にunshiftで登録順（新しい順）
-}
+/* ✅ 登録したら必ず「必須入力モーダル」へ */
+function quickCreateFromCode(code){
+  const b=baseFields();
+  if(!b.driver){ toast("配達員名（点呼 or 集荷）必須"); return; }
 
-function kpiByDate(dateStr){
-  const l = list.filter(x=>x.shipDate===dateStr);
-  const c = s => l.filter(x=>x.status===s).length;
-  const missing = l.filter(x=>!x.address || !x.name).length;
-  return { total:l.length, created:c("created"), out:c("out"), done:c("done"), absent:c("absent"), post:c("post"), ret:c("return"), missing };
-}
-
-function renderKpis(){
-  const dateStr = document.getElementById("filterDate").value || todayStr;
-  const k = kpiByDate(dateStr);
-  document.getElementById("kpis").innerHTML = `
-    <div class="kpi"><small>合計</small><b>${k.total}</b></div>
-    <div class="kpi"><small>未持出</small><b>${k.created}</b></div>
-    <div class="kpi"><small>持出</small><b>${k.out}</b></div>
-    <div class="kpi"><small>完了</small><b>${k.done}</b></div>
-    <div class="kpi"><small>不在/投函</small><b>${k.absent + k.post}</b></div>
-    <div class="kpi"><small>必須未入力</small><b>${k.missing}</b></div>
-  `;
-}
-
-function fmtKm(km){
-  if(km===null || km===undefined || !isFinite(km)) return "";
-  if(km < 1) return `${Math.round(km*1000)}m`;
-  return `${km.toFixed(2)}km`;
-}
-
-function renderList(){
-  renderKpis();
-  const box = document.getElementById("historyList");
-  let filtered = applyFilters(list);
-  filtered = sortItems(filtered);
-
-  if(!filtered.length){
-    box.innerHTML = `<div class="mini">該当データなし。SCANで追加してください。</div>`;
+  // 伝票重複防止（同日/同コード）
+  if(list.some(x=>x.shipDate===b.shipDate && x.code===code)){
+    toast("重複のためスキップ");
     return;
   }
 
-  box.innerHTML = filtered.map(x=>{
-    const kindBadge = `<span class="badge">${escapeHtml((x.kind||"宅配").replace("（郵便物）",""))}</span>`;
-    const last = x.history?.[x.history.length-1];
-    const lastLine = last ? `${last.at} / ${last.action}` : "";
-    const need = (!x.address || !x.name);
-    const needLine = need ? `<div class="mini" style="color:#b45309;font-weight:900;">⚠️ 住所/名前 未入力</div>` : "";
-    const distance = (gps.lat && gps.lng && x.lat && x.lng) ? haversineKm(gps.lat,gps.lng,x.lat,x.lng) : null;
-    const distLine = (document.getElementById("sortMode").value==="distance")
-      ? `<div class="mini">距離：<b>${escapeHtml(fmtKm(distance||999999))}</b> ${(!x.lat||!x.lng) ? "（ピン未作成）":""}</div>` : "";
+  const it={
+    id:uid(),
+    shipDate:b.shipDate,
+    driver:b.driver,
+    kind:b.kind,
+    code:code,
 
-    const doneLabel = (x.kind==="手紙（郵便物）" || x.kind==="ポスト投函") ? "投函完了" : "完了";
+    // 必須
+    name:"",
+    zip:"",
+    address:"",
+    phone:"",
 
+    memo:"",
+    status:"created",
+    lat:null,lng:null,
+    createdAt:nowISO(),
+    updatedAt:nowISO(),
+    history:[{at:nowISO(),action:"集荷登録"}]
+  };
+  list.unshift(it);
+  save(STORE, list);
+  toast("追加 → 必須入力へ");
+  openModal(it.id, true);
+}
+
+/* =========================
+   Postal: Zip -> Address (ZipCloud)
+========================= */
+async function zipToAddress(zip){
+  const z = String(zip||"").replaceAll("-","").trim();
+  if(!/^\d{7}$/.test(z)) return null;
+  const url = "https://zipcloud.ibsnet.co.jp/api/search?zipcode="+encodeURIComponent(z);
+  const res = await fetch(url);
+  if(!res.ok) return null;
+  const data = await res.json();
+  if(!data || data.status!==200 || !data.results?.length) return null;
+  const r = data.results[0];
+  // 都道府県 + 市区町村 + 町域
+  return `${r.address1||""}${r.address2||""}${r.address3||""}`.trim();
+}
+
+/* =========================
+   Geocode: Address -> LatLng (Nominatim)
+   - キャッシュ + 失敗時はピン修正
+========================= */
+async function geocode(addressKey){
+  const key = addressKey.trim();
+  if(!key) return null;
+  if(geoCache[key]) return geoCache[key];
+
+  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(key);
+  const res = await fetch(url, {headers:{Accept:"application/json"}});
+  if(!res.ok) return null;
+  const data = await res.json();
+  if(!data?.length) return null;
+  const out = {lat:Number(data[0].lat), lng:Number(data[0].lon)};
+  geoCache[key]=out;
+  save(GEO_CACHE, geoCache);
+  return out;
+}
+
+function makeAddressKey(it){
+  // 郵便番号 + 住所（建物含む）で精度UP
+  const zip = (it.zip||"").replaceAll("-","").trim();
+  const addr = (it.address||"").trim();
+  return (zip?("〒"+zip+" "):"") + addr;
+}
+
+/* =========================
+   ③ LIST (filters + swipe + reorder)
+========================= */
+document.getElementById("filterDate").addEventListener("change", renderList);
+document.getElementById("filterStatus").addEventListener("change", renderList);
+document.getElementById("filterText").addEventListener("input", renderList);
+
+document.getElementById("btnBulkOut").addEventListener("click", ()=>{
+  const d=document.getElementById("filterDate").value||todayStr;
+  let n=0;
+  list.forEach(it=>{
+    if(it.shipDate===d && it.status==="created"){
+      it.status="out";
+      it.updatedAt=nowISO();
+      it.history.push({at:nowISO(),action:"持出（一括）"});
+      n++;
+    }
+  });
+  save(STORE, list);
+  toast(`持出一括：${n}`);
+  renderList();
+  refreshMapPins(false);
+});
+
+document.getElementById("btnAutoPins").addEventListener("click", async ()=>{
+  const d=document.getElementById("filterDate").value||todayStr;
+  const targets = list.filter(it=>it.shipDate===d && it.address && it.zip && (!it.lat || !it.lng));
+  if(!targets.length){ toast("ピン未作成なし"); return; }
+  toast(`ピン作成：${targets.length}件`);
+  let ok=0, ng=0;
+  for(const it of targets){
+    try{
+      const r = await geocode(makeAddressKey(it));
+      if(r){ it.lat=r.lat; it.lng=r.lng; ok++; }
+      else ng++;
+      it.updatedAt=nowISO();
+      it.history.push({at:nowISO(),action:"ピン自動"});
+      save(STORE, list);
+      // 無料API対策
+      await new Promise(r=>setTimeout(r, 800));
+    }catch{ ng++; }
+  }
+  pinState.textContent = ok?`OK(${ok})`:`失敗(${ng})`;
+  toast(`ピンOK:${ok} / 失敗:${ng}`);
+  renderList();
+  refreshMapPins(true);
+});
+
+function applyFilters(items){
+  const d=document.getElementById("filterDate").value||todayStr;
+  const st=document.getElementById("filterStatus").value;
+  const q=(document.getElementById("filterText").value||"").trim().toLowerCase();
+  return items.filter(it=>{
+    if(it.shipDate!==d) return false;
+    if(st && it.status!==st) return false;
+    if(!q) return true;
+    const hay = `${it.code} ${it.name} ${it.zip} ${it.address} ${it.phone} ${it.kind}`.toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+let sortable = null;
+function renderList(){
+  const box=document.getElementById("listBox");
+  const filtered=applyFilters(list);
+
+  if(!filtered.length){
+    box.innerHTML = `<div class="mini">データなし。②集荷（SCAN）で追加してください。</div>`;
+    return;
+  }
+
+  box.innerHTML = filtered.map(it=>{
+    const need = (!it.name || !it.zip || !it.address || !it.phone);
+    const pin = (it.lat && it.lng) ? "📍" : "（ピン未）";
     return `
-      <div class="item" id="row-${x.id}">
-        <div class="itemTop">
-          <div>
-            <b>${escapeHtml(x.code)}</b>
-            <div class="mini">${kindBadge} ${escapeHtml(x.client||"")} / ${escapeHtml(x.shipDate)}</div>
+      <div class="swipe" data-id="${it.id}">
+        <div class="swipeBack">
+          <button class="btnOK" onclick="setStatus('${it.id}','done')">完了</button>
+          <button class="btnW" onclick="setStatus('${it.id}','absent')">不在</button>
+          <button class="btnB" onclick="navTo('${it.id}')">ナビ</button>
+          <button class="btnR" onclick="delOne('${it.id}')">削除</button>
+        </div>
+        <div class="swipeFront">
+          <div class="itemTop">
+            <div>
+              <b>${esc(it.code)}</b>
+              <div class="mini"><span class="badge">${esc(it.kind)}</span> ${esc(it.shipDate)} / ${pin}</div>
+            </div>
+            <div class="tag ${statusClass(it.status)}">${esc(STATUS[it.status]||it.status)}</div>
           </div>
-          <div class="tag ${statusClass(x.status)}">${escapeHtml(STATUS[x.status]||x.status)}</div>
-        </div>
 
-        <div class="meta">
-          名前：${escapeHtml(x.name||"（未入力）")}<br>
-          住所：${escapeHtml(x.address||"（未入力）")}<br>
-          ${needLine}
-          ${distLine}
-          最終：${escapeHtml(lastLine)}<br>
-          配達員：${escapeHtml(x.driver||"（未入力）")}
-        </div>
+          <div class="meta">
+            名前：${esc(it.name||"（未入力）")} ${need?`<span class="danger">←必須</span>`:""}<br>
+            〒：${esc(it.zip||"（未入力）")}<br>
+            住所：${esc(it.address||"（未入力）")}<br>
+            電話：${esc(it.phone||"（未入力）")}
+          </div>
 
-        <div class="actions">
-          <button class="btn-blue btn-mini" onclick="navTo('${x.id}')">🗺 ナビ</button>
-          <button class="btn-ok btn-mini" onclick="setStatus('${x.id}','out','持出')">持出</button>
-          <button class="btn-ok btn-mini" onclick="setDone('${x.id}')">${doneLabel}</button>
-          <button class="btn-warn btn-mini" onclick="setAbsent('${x.id}')">不在</button>
-          <button class="btn-ghost btn-mini" onclick="openModal('${x.id}', ${need})">詳細/入力/OCR</button>
-          <button class="btn-ghost btn-mini" onclick="focusPin('${x.id}')">📍ピン</button>
-          <button class="btn-bad btn-mini" onclick="delOne('${x.id}')">削除</button>
+          <div class="btns" style="margin-top:10px;">
+            <button class="btnG" onclick="openModal('${it.id}', true)">詳細/修正</button>
+            <button class="btnOK" onclick="setStatus('${it.id}','out')">持出</button>
+            <button class="btnB" onclick="focusPin('${it.id}')">地図</button>
+          </div>
+
+          <div class="mini" style="margin-top:6px;">※左へスワイプで「完了/不在/ナビ/削除」</div>
         </div>
       </div>
     `;
   }).join("");
-}
 
-/* =========================
-   Status with required check
-========================= */
-function requireFields(it){
-  return (it && it.address && it.name);
-}
-window.setStatus = function(id, st, label){
-  const it = list.find(x=>x.id===id);
-  if(!it) return;
-  it.status = st;
-  it.updatedAt = nowISO();
-  it.history = it.history || [];
-  it.history.push({at: nowISO(), action: label});
-  save();
-  renderList();
-  toast(`${label}：${it.code}`);
-};
+  // Swipe handlers
+  initSwipe(box);
 
-window.setDone = function(id){
-  const it = list.find(x=>x.id===id);
-  if(!it) return;
-  if(!requireFields(it)){
-    openModal(id, true);
-    toast("住所/名前を入力してから完了");
-    return;
-  }
-  const isPost = (it.kind==="手紙（郵便物）" || it.kind==="ポスト投函");
-  it.status = isPost ? "post" : "done";
-  it.updatedAt = nowISO();
-  it.history = it.history || [];
-  it.history.push({at: nowISO(), action: isPost ? "投函" : "完了"});
-  save();
-  renderList();
-  refreshMapPins(false);
-  toast(`${isPost ? "投函" : "完了"}：${it.code}`);
-  jumpNextUnfinished();
-};
+  // Sortable (並び替え：filteredの順を「list」に反映)
+  if(sortable) sortable.destroy();
+  sortable = new Sortable(box, {
+    animation: 150,
+    handle: ".swipeFront",
+    onEnd: (evt)=>{
+      // boxの並び（表示） → 実データの順に反映（当日分だけ）
+      const d=document.getElementById("filterDate").value||todayStr;
+      const ids=[...box.querySelectorAll(".swipe")].map(x=>x.getAttribute("data-id"));
 
-window.setAbsent = function(id){
-  const it = list.find(x=>x.id===id);
-  if(!it) return;
-  if(!requireFields(it)){
-    openModal(id, true);
-    toast("住所/名前を入力してから不在");
-    return;
-  }
-  it.status = "absent";
-  it.updatedAt = nowISO();
-  it.history = it.history || [];
-  it.history.push({at: nowISO(), action: "不在"});
-  save();
-  renderList();
-  refreshMapPins(false);
-  toast(`不在：${it.code}`);
-  jumpNextUnfinished();
-};
+      const dayItems = list.filter(x=>x.shipDate===d);
+      const others = list.filter(x=>x.shipDate!==d);
 
-window.delOne = function(id){
-  if(!confirm("削除しますか？")) return;
-  list = list.filter(x=>x.id!==id);
-  save();
-  renderList();
-  refreshMapPins(false);
-};
+      // ids順に dayItems を並べ替え（存在するものだけ）
+      const map = new Map(dayItems.map(x=>[x.id,x]));
+      const reordered = ids.map(id=>map.get(id)).filter(Boolean);
 
-document.getElementById("btnBulkOut").addEventListener("click", ()=>{
-  const dateStr = document.getElementById("filterDate").value || todayStr;
-  let cnt = 0;
-  list.forEach(it=>{
-    if(it.shipDate===dateStr && it.status==="created"){
-      it.status="out";
-      it.updatedAt = nowISO();
-      it.history = it.history || [];
-      it.history.push({at: nowISO(), action:"持出（一括）"});
-      cnt++;
+      // idsに含まれてない当日分（フィルタ外）は末尾維持
+      const rest = dayItems.filter(x=>!ids.includes(x.id));
+
+      list = [...reordered, ...rest, ...others];
+      save(STORE, list);
+      toast("順番を保存しました");
     }
   });
-  save();
-  renderList();
-  refreshMapPins(false);
-  toast(`持出一括：${cnt}件`);
-});
+}
 
-document.getElementById("btnNext").addEventListener("click", jumpNextUnfinished);
-
-function jumpNextUnfinished(){
-  const dateStr = document.getElementById("filterDate").value || todayStr;
-  const all = list.filter(x=>x.shipDate===dateStr);
-  const target = all.find(x=>x.status==="created") || all.find(x=>x.status==="out");
-  if(!target){ toast("未完なし（完了）"); return; }
-  document.querySelector('[data-tab="list"]').click();
-  setTimeout(()=>{
-    const el = document.getElementById("row-"+target.id);
-    if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
-  }, 60);
+function initSwipe(container){
+  container.querySelectorAll(".swipeFront").forEach(front=>{
+    let startX=0, currentX=0, open=false;
+    const max = 210; // reveal width
+    front.addEventListener("touchstart",(e)=>{
+      startX = e.touches[0].clientX;
+      currentX = 0;
+    },{passive:true});
+    front.addEventListener("touchmove",(e)=>{
+      const dx = e.touches[0].clientX - startX;
+      // 左スワイプだけ
+      currentX = Math.max(-max, Math.min(0, dx));
+      front.style.transform = `translateX(${currentX}px)`;
+    },{passive:true});
+    front.addEventListener("touchend",()=>{
+      if(currentX < -70){ open=true; front.style.transform=`translateX(${-max}px)`; }
+      else { open=false; front.style.transform=`translateX(0px)`; }
+    });
+    // タップで閉じる
+    front.addEventListener("click", ()=>{
+      if(open){ open=false; front.style.transform="translateX(0px)"; }
+    });
+  });
 }
 
 /* =========================
-   Navigation (Google)
+   Modal (必須入力)
 ========================= */
-window.navTo = function(id){
-  const it = list.find(x=>x.id===id);
-  if(!it) return;
-  if(!it.address){
-    openModal(id, true);
-    toast("住所を入力してナビ");
+let modalId=null;
+
+const modalBack=document.getElementById("modalBack");
+const reqWarn=document.getElementById("reqWarn");
+
+document.getElementById("btnZipFill").addEventListener("click", async ()=>{
+  const zip=document.getElementById("mZip").value.trim();
+  const addr=await zipToAddress(zip);
+  if(!addr){ toast("郵便番号が見つかりません"); return; }
+  // 住所は自動で「都道府県+市区町村+町域」→ 建物は追記してもらう
+  if(!document.getElementById("mAddr").value.trim()){
+    document.getElementById("mAddr").value = addr;
+  }else{
+    // 既にある場合は先頭に入れ替え提案
+    toast("住所（都道府県等）を補完しました");
+  }
+});
+
+document.getElementById("btnMakePin").addEventListener("click", async ()=>{
+  const it = getIt(modalId); if(!it) return;
+  await autoPin(it, true);
+});
+
+document.getElementById("btnFixPin").addEventListener("click", ()=>{
+  const it = getIt(modalId); if(!it) return;
+  openPinModal(it);
+});
+
+document.getElementById("btnSave").addEventListener("click", ()=> saveModalOnly());
+document.getElementById("btnOut").addEventListener("click", ()=> setStatus(modalId,"out",true));
+document.getElementById("btnDone").addEventListener("click", ()=> setStatus(modalId,"done",true));
+document.getElementById("btnAbsent").addEventListener("click", ()=> setStatus(modalId,"absent",true));
+document.getElementById("btnDel").addEventListener("click", ()=> delOne(modalId,true));
+
+function getIt(id){ return list.find(x=>x.id===id); }
+
+window.openModal = function(id, force){
+  modalId=id;
+  const it=getIt(id); if(!it) return;
+  document.getElementById("mTitle").textContent="必須入力（登録完了まで）";
+  document.getElementById("mSub").textContent = `${it.shipDate} / ${it.kind} / ${it.code}`;
+
+  document.getElementById("mCode").value = it.code||"";
+  document.getElementById("mKind").value = it.kind||"";
+  document.getElementById("mName").value = it.name||"";
+  document.getElementById("mZip").value  = it.zip||"";
+  document.getElementById("mAddr").value = it.address||"";
+  document.getElementById("mPhone").value= it.phone||"";
+  document.getElementById("mMemo").value = it.memo||"";
+  document.getElementById("mLatLng").value = (it.lat&&it.lng)?`${it.lat},${it.lng}`:"";
+
+  reqWarn.style.display="none";
+  modalBack.style.display="flex";
+};
+
+window.closeModal = function(){
+  modalBack.style.display="none";
+  modalId=null;
+};
+
+function validateRequired(){
+  const name=document.getElementById("mName").value.trim();
+  const zip=document.getElementById("mZip").value.replaceAll("-","").trim();
+  const addr=document.getElementById("mAddr").value.trim();
+  const phone=document.getElementById("mPhone").value.trim();
+  return (name && /^\d{7}$/.test(zip) && addr && phone);
+}
+
+async function saveModalOnly(){
+  const it=getIt(modalId); if(!it) return;
+
+  it.code = document.getElementById("mCode").value.trim() || it.code;
+  it.name = document.getElementById("mName").value.trim();
+  it.zip  = document.getElementById("mZip").value.replaceAll("-","").trim();
+  it.address = document.getElementById("mAddr").value.trim();
+  it.phone = document.getElementById("mPhone").value.trim();
+  it.memo  = document.getElementById("mMemo").value.trim();
+
+  it.updatedAt=nowISO();
+  it.history.push({at:nowISO(),action:"情報更新"});
+  save(STORE, list);
+
+  // 必須が揃ってたらピン自動（止まらないように裏で）
+  if(validateRequired() && (!it.lat || !it.lng)){
+    autoPin(it, false);
+  }
+
+  toast("保存しました");
+  closeModal();
+  renderList();
+  refreshMapPins(false);
+}
+
+async function autoPin(it, showToast){
+  // 必須揃ってないなら無理
+  if(!(it.zip && it.address)){
+    if(showToast) toast("郵便番号/住所が必要");
     return;
   }
-  const dest = encodeURIComponent(it.address);
-  const origin = (gps.lat && gps.lng) ? `${gps.lat},${gps.lng}` : "";
+  const key = makeAddressKey(it);
+  if(showToast) toast("ピン作成中…");
+
+  const r = await geocode(key);
+  if(!r){
+    pinState.textContent="失敗";
+    if(showToast) toast("自動ピン失敗 → ピン修正へ");
+    // ピン修正へ誘導
+    openPinModal(it);
+    return;
+  }
+  it.lat=r.lat; it.lng=r.lng;
+  it.updatedAt=nowISO();
+  it.history.push({at:nowISO(),action:"ピン自動"});
+  save(STORE, list);
+
+  document.getElementById("mLatLng").value = `${it.lat},${it.lng}`;
+  pinState.textContent="OK";
+  refreshMapPins(false);
+  if(showToast) toast("ピンOK");
+}
+
+async function setStatus(id, st, fromModal){
+  const it=getIt(id); if(!it) return;
+
+  // 状態変更前に必須チェック
+  // （現場で「完了/不在」を押す前に漏れがあると事故るので）
+  if(!(it.name && it.zip && it.address && it.phone)){
+    // モーダルで必須入力させる
+    openModal(it.id, true);
+    reqWarn.style.display="block";
+    toast("必須入力が不足");
+    return;
+  }
+  if(!it.lat || !it.lng){
+    // ピンは「地図」用途のため、未作成なら作りに行く（失敗時は手動）
+    await autoPin(it, true);
+  }
+
+  it.status=st;
+  it.updatedAt=nowISO();
+  it.history.push({at:nowISO(),action:STATUS[st]||st});
+  save(STORE, list);
+
+  if(fromModal) closeModal();
+  renderList();
+  refreshMapPins(false);
+  toast(`${STATUS[st]||st}：${it.code}`);
+}
+
+window.delOne = function(id, fromModal){
+  if(!confirm("削除しますか？")) return;
+  list=list.filter(x=>x.id!==id);
+  save(STORE, list);
+  if(fromModal) closeModal();
+  renderList();
+  refreshMapPins(false);
+  toast("削除しました");
+};
+
+/* =========================
+   Navigation (Google Maps)
+========================= */
+window.navTo = function(id){
+  const it=getIt(id); if(!it) return;
+  if(!it.address){ toast("住所がありません"); return; }
+  const dest=encodeURIComponent(it.address);
+  const origin=(gps.lat&&gps.lng)?`${gps.lat},${gps.lng}`:"";
   const url = origin
     ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${dest}&travelmode=driving`
     : `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
-  if(it.status==="created"){
-    if(confirm("ナビ開始と同時に「持出」にしますか？")){
-      window.setStatus(it.id, "out", "持出");
-    }
-  }
-  window.open(url, "_blank");
+  window.open(url,"_blank");
 };
 
 /* =========================
-   Geocoding (Nominatim)
-   - address -> lat/lng
+   ④ MAP (fast / current area)
 ========================= */
-async function geocodeAddress(address){
-  const key = address.trim();
-  if(!key) return null;
-
-  if(geoCache[key]) return geoCache[key];
-
-  // Nominatim
-  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(key);
-  const res = await fetch(url, { headers: { "Accept":"application/json" } });
-  if(!res.ok) return null;
-  const data = await res.json();
-  if(!data || !data.length) return null;
-
-  const out = { lat: Number(data[0].lat), lng: Number(data[0].lon), display: data[0].display_name || "" };
-  geoCache[key] = out;
-  saveGeoCache();
-  return out;
-}
-
-document.getElementById("btnGeoMissing").addEventListener("click", async ()=>{
-  const dateStr = document.getElementById("filterDate").value || todayStr;
-  const targets = list.filter(x=>x.shipDate===dateStr && x.address && (!x.lat || !x.lng));
-  if(!targets.length){ toast("ピン未作成なし"); return; }
-
-  toast(`住所→座標：${targets.length}件（順番に処理）`);
-  for(const it of targets){
-    try{
-      const r = await geocodeAddress(it.address);
-      if(r){
-        it.lat = r.lat; it.lng = r.lng; it.geoSource = "nominatim";
-        it.updatedAt = nowISO();
-        it.history.push({at: nowISO(), action:"座標取得"});
-        save();
-      }
-      // 無料APIのため少し待つ（連続で叩きすぎない）
-      await new Promise(r=>setTimeout(r, 900));
-    }catch(e){}
-  }
-  renderList();
-  refreshMapPins(true);
-  toast("ピン作成完了");
-});
-
-/* =========================
-   MAP (Leaflet)
-========================= */
-let map = null;
-let markers = new Map(); // id -> marker
-let gpsMarker = null;
+let map=null, markers=new Map(), gpsMarker=null;
+document.getElementById("btnMapCenter").addEventListener("click", ()=>{ if(!gps.lat) getGPS(); setTimeout(()=>centerToGPS(true), 900); });
+document.getElementById("btnMapRefresh").addEventListener("click", ()=>refreshMapPins(true));
 
 function ensureMap(){
   if(map) return;
-  map = L.map('map', { zoomControl:true });
+  map = L.map("map", { zoomControl:true });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:19, attribution:"&copy; OpenStreetMap" }).addTo(map);
+  // 初期：大阪
+  map.setView([34.6937,135.5023], 13);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-
-  // default center
-  map.setView([34.6937, 135.5023], 12); // Osaka
-
-  // click: nothing
+  // 画面移動したら範囲内ピンだけ描画
+  map.on("moveend", ()=> refreshMapPins(false));
 }
 
-function centerToGPS(){
-  if(!(gps.lat && gps.lng)) return;
-  map.setView([gps.lat, gps.lng], 15);
-  if(!gpsMarker){
-    gpsMarker = L.circleMarker([gps.lat,gps.lng], {radius:8}).addTo(map).bindPopup("現在地");
-  }else{
-    gpsMarker.setLatLng([gps.lat,gps.lng]);
+function centerToGPS(forceZoom){
+  if(!map) return;
+  if(gps.lat && gps.lng){
+    map.setView([gps.lat,gps.lng], forceZoom?15:map.getZoom());
+    if(!gpsMarker){
+      gpsMarker = L.circleMarker([gps.lat,gps.lng], {radius:8}).addTo(map).bindPopup("現在地");
+    }else{
+      gpsMarker.setLatLng([gps.lat,gps.lng]);
+    }
   }
 }
 
-document.getElementById("btnMapCenter").addEventListener("click", ()=>{
-  if(!(gps.lat && gps.lng)){
-    getGPS();
-    setTimeout(centerToGPS, 1200);
-  }else centerToGPS();
-});
-
-document.getElementById("btnMapReload").addEventListener("click", ()=>refreshMapPins(true));
-
-function pinColorByStatus(st){
-  // simple: return class-based emoji in popup; marker style is default
-  return st;
+function withinBounds(lat,lng,b){
+  return b.contains([lat,lng]);
 }
 
 function refreshMapPins(recenter){
   if(!map) return;
 
-  const dateStr = document.getElementById("filterDate").value || todayStr;
-  const items = list.filter(x=>x.shipDate===dateStr && x.lat && x.lng);
+  const d=document.getElementById("filterDate").value||todayStr;
+  const bounds = map.getBounds();
 
-  // remove missing
+  // 当日分でピンありのみ
+  const items = list.filter(it=>it.shipDate===d && it.lat && it.lng);
+
+  // 範囲内だけ描画（重くならない）
+  const inView = items.filter(it=>withinBounds(it.lat,it.lng,bounds));
+
+  // remove old markers not needed
   for(const [id,m] of markers.entries()){
-    if(!items.find(x=>x.id===id)){
+    if(!inView.find(x=>x.id===id)){
       map.removeLayer(m);
       markers.delete(id);
     }
   }
 
-  // add/update
-  items.forEach(it=>{
-    const title = `${it.code} / ${it.name||"名前未入力"} / ${STATUS[it.status]||it.status}`;
-    const popupHtml = `
-      <b>${escapeHtml(it.code)}</b><br>
-      ${escapeHtml(it.name||"（名前未入力）")}<br>
-      ${escapeHtml(it.address||"（住所未入力）")}<br>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button onclick="openFromMap('${it.id}')" style="padding:8px 10px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;font-weight:900;cursor:pointer;">開く</button>
-        <button onclick="navTo('${it.id}')" style="padding:8px 10px;border-radius:12px;border:0;background:#1565C0;color:#fff;font-weight:900;cursor:pointer;">ナビ</button>
-      </div>
-    `;
+  // add/update in small batches (固まらない)
+  let i=0;
+  const batch = ()=>{
+    const slice=inView.slice(i, i+20);
+    slice.forEach(it=>{
+      const popup = `
+        <b>${esc(it.code)}</b><br>
+        ${esc(it.name)}<br>
+        〒${esc(it.zip)}<br>
+        ${esc(it.address)}<br>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="openModal('${it.id}', true)" style="padding:8px 10px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:900;cursor:pointer;">開く</button>
+          <button onclick="setStatus('${it.id}','done')" style="padding:8px 10px;border-radius:12px;border:0;background:#10b981;color:#fff;font-weight:900;cursor:pointer;">完了</button>
+          <button onclick="setStatus('${it.id}','absent')" style="padding:8px 10px;border-radius:12px;border:0;background:#f59e0b;color:#111;font-weight:900;cursor:pointer;">不在</button>
+          <button onclick="navTo('${it.id}')" style="padding:8px 10px;border-radius:12px;border:0;background:#1565C0;color:#fff;font-weight:900;cursor:pointer;">ナビ</button>
+        </div>
+      `;
+      if(!markers.has(it.id)){
+        const m = L.marker([it.lat,it.lng]).addTo(map).bindPopup(popup);
+        markers.set(it.id, m);
+      }else{
+        markers.get(it.id).setLatLng([it.lat,it.lng]).setPopupContent(popup);
+      }
+    });
+    i+=20;
+    if(i<inView.length) requestAnimationFrame(batch);
+  };
+  requestAnimationFrame(batch);
 
-    if(!markers.has(it.id)){
-      const m = L.marker([it.lat,it.lng]).addTo(map);
-      m.bindPopup(popupHtml);
-      m.on("click", ()=>{ /* popup shows */ });
-      markers.set(it.id, m);
-    }else{
-      markers.get(it.id).setLatLng([it.lat,it.lng]).setPopupContent(popupHtml);
-    }
-  });
+  // pin state label
+  const okCount = items.length;
+  pinState.textContent = okCount ? `OK(${okCount})` : "未作成";
 
-  // gps marker
-  if(gps.lat && gps.lng){
-    if(!gpsMarker) gpsMarker = L.circleMarker([gps.lat,gps.lng], {radius:8}).addTo(map).bindPopup("現在地");
-    else gpsMarker.setLatLng([gps.lat,gps.lng]);
-  }
-
+  // recenter to GPS on first open
   if(recenter){
-    if(gps.lat && gps.lng){
-      centerToGPS();
-    }else if(items.length){
-      const group = L.featureGroup(items.map(it=>L.marker([it.lat,it.lng])));
-      try{ map.fitBounds(group.getBounds().pad(0.2)); }catch{}
-    }
+    if(gps.lat && gps.lng) centerToGPS(true);
   }
 }
 
-window.openFromMap = function(id){
-  openModal(id, true);
-};
-
 window.focusPin = function(id){
-  const it = list.find(x=>x.id===id);
-  if(!it){ return; }
-  if(!(it.lat && it.lng)){
-    openModal(id, true);
-    toast("ピン未作成：住所→座標を押してください");
-    return;
-  }
+  const it=getIt(id); if(!it) return;
   document.querySelector('[data-tab="map"]').click();
   setTimeout(()=>{
-    map.setView([it.lat,it.lng], 17);
-    const m = markers.get(id);
-    if(m) m.openPopup();
-  }, 120);
+    if(it.lat && it.lng){
+      map.setView([it.lat,it.lng], 17);
+      const m = markers.get(it.id);
+      if(m) m.openPopup();
+    }else{
+      toast("ピン未作成：詳細→ピン自動/修正");
+      openModal(it.id, true);
+    }
+  }, 200);
 };
 
 /* =========================
-   Exports (CSV / PDF)
+   Pin Fix Modal
 ========================= */
-function toCSV(rows){
-  const esc = v => `"${String(v??"").replaceAll('"','""')}"`;
-  return rows.map(r=>r.map(esc).join(",")).join("\n");
+let pinMap=null, pinMarker=null, pinTargetId=null;
+
+function openPinModal(it){
+  pinTargetId = it.id;
+  document.getElementById("pinBack").style.display="flex";
+
+  setTimeout(()=>{
+    if(!pinMap){
+      pinMap = L.map("pinMap", { zoomControl:true });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:19, attribution:"&copy; OpenStreetMap" }).addTo(pinMap);
+      pinMap.on("click",(e)=>{
+        if(pinMarker) pinMarker.setLatLng(e.latlng);
+        else pinMarker = L.marker(e.latlng,{draggable:true}).addTo(pinMap);
+      });
+    }
+    pinMap.invalidateSize();
+
+    // 初期位置：既存ピン→住所付近（ジオコーディング結果）→現在地→大阪
+    let latlng=null;
+    if(it.lat && it.lng) latlng = [it.lat,it.lng];
+    else if(gps.lat && gps.lng) latlng = [gps.lat,gps.lng];
+    else latlng = [34.6937,135.5023];
+
+    pinMap.setView(latlng, 16);
+    if(pinMarker) pinMap.removeLayer(pinMarker);
+    pinMarker = L.marker(latlng, {draggable:true}).addTo(pinMap);
+  }, 120);
 }
-function downloadFile(content, filename, mime){
-  const blob = new Blob([content], {type:mime});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 500);
+
+function closePinModal(){
+  document.getElementById("pinBack").style.display="none";
+  pinTargetId=null;
 }
-function rowsForExport(items){
-  return items.map(x=>{
-    const last = x.history?.[x.history.length-1];
-    return [
-      x.shipDate, x.driver, x.client,
-      x.kind, (x.tags||[]).join("/"),
-      x.code, x.name, x.address, x.phone,
-      x.lat||"", x.lng||"",
-      STATUS[x.status]||x.status,
-      last?.at || "",
-      (x.memo||"")
-    ];
-  });
-}
-document.getElementById("btnExportCSV").addEventListener("click", ()=>{
-  const items = sortItems(applyFilters(list));
-  const header = ["日付","配達員","取引先","種別","タグ","コード","名前","住所","電話","lat","lng","状態","最終更新","メモ"];
-  const csv = toCSV([header, ...rowsForExport(items)]);
-  downloadFile(csv, `OFA_配達履歴_${todayStr}.csv`, "text/csv;charset=utf-8");
-});
-function exportPDF(title, items, filename, metaLines=[]){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+document.getElementById("btnPinSave").addEventListener("click", ()=>{
+  if(!pinTargetId || !pinMarker) return;
+  const it=getIt(pinTargetId); if(!it) return;
+  const ll=pinMarker.getLatLng();
+  it.lat=ll.lat; it.lng=ll.lng;
+  it.updatedAt=nowISO();
+  it.history.push({at:nowISO(),action:"ピン手動修正"});
+  save(STORE, list);
 
-  doc.setFontSize(14);
-  doc.text(title, 14, 14);
-
-  doc.setFontSize(10);
-  let y=20;
-  metaLines.forEach(line=>{ doc.text(line, 14, y); y+=5; });
-
-  const head = [["日付","種別","コード","名前","住所","状態"]];
-  const body = items.map(x=>[
-    x.shipDate,
-    (x.kind||"").replace("（郵便物）",""),
-    x.code,
-    x.name||"",
-    x.address||"",
-    STATUS[x.status]||x.status
-  ]);
-
-  doc.autoTable({ startY: y+2, head, body, styles:{fontSize:9, cellPadding:2}, theme:"grid" });
-
-  const pageCount = doc.getNumberOfPages();
-  for(let i=1;i<=pageCount;i++){
-    doc.setPage(i);
-    doc.setFontSize(9);
-    doc.text(`OFA GROUP / ${todayStr} / Page ${i}/${pageCount}`, 14, 292);
+  // 必須入力モーダルにも反映
+  if(modalId===it.id){
+    document.getElementById("mLatLng").value = `${it.lat},${it.lng}`;
   }
-  doc.save(filename);
-}
-document.getElementById("btnExportPDF").addEventListener("click", ()=>{
-  const items = sortItems(applyFilters(list));
-  exportPDF("OFA 配達履歴", items, `OFA_配達履歴_${todayStr}.pdf`, [
-    `出力：${nowISO()}`,
-    `GPS：${gps.lat&&gps.lng ? gps.lat.toFixed(6)+","+gps.lng.toFixed(6) : "未取得"}`
+  closePinModal();
+  refreshMapPins(false);
+  toast("ピンを保存しました");
+});
+
+/* =========================
+   Exports (CSV/PDF)
+========================= */
+document.getElementById("btnExportCSV").addEventListener("click", ()=>{
+  const d=document.getElementById("filterDate").value||todayStr;
+  const items=list.filter(it=>it.shipDate===d);
+  const header=["日付","配達員","種別","伝票","名前","郵便番号","住所","電話","状態","lat","lng","メモ","更新"];
+  const rows=items.map(it=>[
+    it.shipDate,it.driver,it.kind,it.code,it.name,it.zip,it.address,it.phone,STATUS[it.status]||it.status,
+    it.lat||"",it.lng||"",it.memo||"",it.updatedAt||""
   ]);
+  downloadCSV([header,...rows], `OFA_配達_${d}.csv`);
+});
+document.getElementById("btnExportPDF").addEventListener("click", ()=>{
+  const d=document.getElementById("filterDate").value||todayStr;
+  const items=list.filter(it=>it.shipDate===d);
+  exportPDF(`OFA 配達リスト ${d}`, items, `OFA_配達_${d}.pdf`);
 });
 document.getElementById("btnClearAll").addEventListener("click", ()=>{
-  if(!confirm("全データ削除します。復元できません。")) return;
-  if(!confirm("最終確認：削除しますか？")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  list = [];
+  if(!confirm("全削除しますか？復元できません")) return;
+  list=[];
+  save(STORE, list);
   renderList();
-  renderReport();
   refreshMapPins(true);
   toast("削除しました");
 });
 
-/* =========================
-   Report
-========================= */
-document.getElementById("reportDate").addEventListener("change", renderReport);
-document.getElementById("reportDriver").addEventListener("input", renderReport);
-
-function itemsByDate(dateStr){ return list.filter(x=>x.shipDate===dateStr); }
-function renderReport(){
-  const dateStr = document.getElementById("reportDate").value || todayStr;
-  const items = itemsByDate(dateStr);
-  const driver = (document.getElementById("reportDriver").value || "").trim()
-    || (document.getElementById("driver").value || "").trim();
-
-  const c = (st)=> items.filter(x=>x.status===st).length;
-  const missing = items.filter(x=>!x.address || !x.name).length;
-
-  document.getElementById("reportKpis").innerHTML = `
-    <div class="kpi"><small>対象日</small><b>${escapeHtml(dateStr)}</b></div>
-    <div class="kpi"><small>配達員</small><b>${escapeHtml(driver||"未入力")}</b></div>
-    <div class="kpi"><small>合計</small><b>${items.length}</b></div>
-    <div class="kpi"><small>完了</small><b>${c("done")}</b></div>
-    <div class="kpi"><small>投函</small><b>${c("post")}</b></div>
-    <div class="kpi"><small>不在</small><b>${c("absent")}</b></div>
-    <div class="kpi"><small>必須未入力</small><b>${missing}</b></div>
-  `;
+function downloadCSV(table, filename){
+  const escv=v=> `"${String(v??"").replaceAll('"','""')}"`;
+  const csv = table.map(r=>r.map(escv).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 500);
 }
+function exportPDF(title, items, filename){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+  doc.setFontSize(14);
+  doc.text(title, 14, 14);
+  doc.setFontSize(10);
+  doc.text(`出力：${nowISO()}`, 14, 20);
+
+  const head=[["種別","伝票","名前","〒","住所","電話","状態"]];
+  const body=items.map(it=>[
+    it.kind||"", it.code||"", it.name||"", it.zip||"", it.address||"", it.phone||"", STATUS[it.status]||it.status
+  ]);
+  doc.autoTable({ startY: 24, head, body, styles:{fontSize:9, cellPadding:2}, theme:"grid" });
+  doc.save(filename);
+}
+
+/* =========================
+   ⑤ REPORT
+========================= */
 document.getElementById("btnReportCSV").addEventListener("click", ()=>{
-  const dateStr = document.getElementById("reportDate").value || todayStr;
-  const items = itemsByDate(dateStr);
-  const header = ["日付","配達員","取引先","種別","タグ","コード","名前","住所","電話","lat","lng","状態","最終更新","メモ"];
-  const csv = toCSV([header, ...rowsForExport(items)]);
-  downloadFile(csv, `OFA_日報_${dateStr}.csv`, "text/csv;charset=utf-8");
+  const d=document.getElementById("reportDate").value||todayStr;
+  const driver=(document.getElementById("reportDriver").value.trim() || document.getElementById("driver").value.trim() || document.getElementById("tenkoDriver").value.trim());
+  const items=list.filter(it=>it.shipDate===d && (!driver || it.driver===driver));
+
+  const header=["日付","配達員","合計","持出","完了","不在"];
+  const total=items.length;
+  const out=items.filter(x=>x.status==="out").length;
+  const done=items.filter(x=>x.status==="done").length;
+  const abs=items.filter(x=>x.status==="absent").length;
+  downloadCSV([header,[d,driver||"",total,out,done,abs]], `OFA_日報_${d}.csv`);
 });
 document.getElementById("btnReportPDF").addEventListener("click", ()=>{
-  const dateStr = document.getElementById("reportDate").value || todayStr;
-  const items = itemsByDate(dateStr);
-  const driver = (document.getElementById("reportDriver").value || "").trim()
-    || (document.getElementById("driver").value || "").trim();
-  exportPDF("OFA 日報（配達）", items, `OFA_日報_${dateStr}.pdf`, [
-    `対象日：${dateStr}`, `配達員：${driver||"未入力"}`, `出力：${nowISO()}`
-  ]);
+  const d=document.getElementById("reportDate").value||todayStr;
+  const driver=(document.getElementById("reportDriver").value.trim() || document.getElementById("driver").value.trim() || document.getElementById("tenkoDriver").value.trim());
+  const items=list.filter(it=>it.shipDate===d && (!driver || it.driver===driver));
+  exportPDF(`OFA 日報 ${d} ${driver||""}`, items, `OFA_日報_${d}.pdf`);
 });
 
 /* =========================
-   Modal (Detail / OCR / Geo)
+   Start state
 ========================= */
-let modalId = null;
-let forceRequired = false;
-
-window.openModal = function(id, require=false){
-  modalId = id;
-  forceRequired = !!require;
-
-  const it = list.find(x=>x.id===id);
-  if(!it) return;
-
-  document.getElementById("modalTitle").textContent = "詳細（住所/名前/ピン/完了）";
-  document.getElementById("modalSub").textContent = `${it.shipDate} / ${it.kind?.replace("（郵便物）","") || ""} / ${it.code}`;
-
-  document.getElementById("mCode").value = it.code || "";
-  document.getElementById("mKind").value = it.kind || "宅配";
-  document.getElementById("mName").value = it.name || "";
-  document.getElementById("mAddress").value = it.address || "";
-  document.getElementById("mPhone").value = it.phone || "";
-  document.getElementById("mMemo").value = it.memo || "";
-  document.getElementById("mLatLng").value = (it.lat && it.lng) ? `${it.lat},${it.lng}` : "";
-
-  // tag pills
-  [...document.querySelectorAll("#tagPills .pill")].forEach(p=>{
-    p.classList.toggle("active", (it.tags||[]).includes(p.textContent));
-  });
-
-  // required warn
-  const need = (!it.address || !it.name) && forceRequired;
-  document.getElementById("requiredWarn").style.display = need ? "block" : "none";
-
-  // OCR reset
-  setOCRProgress(0, "未実行");
-  document.getElementById("ocrCandidates").innerHTML = "";
-
-  document.getElementById("modalBack").style.display = "flex";
-};
-
-window.closeModal = function(){
-  document.getElementById("modalBack").style.display = "none";
-  modalId = null;
-  forceRequired = false;
-};
-
-function getModalItem(){
-  if(!modalId) return null;
-  return list.find(x=>x.id===modalId);
-}
-
-window.saveModal = function(){
-  const it = getModalItem();
-  if(!it) return;
-
-  it.code = document.getElementById("mCode").value.trim() || it.code;
-  it.kind = document.getElementById("mKind").value;
-  it.name = document.getElementById("mName").value.trim();
-  it.address = document.getElementById("mAddress").value.trim();
-  it.phone = document.getElementById("mPhone").value.trim();
-  it.memo = document.getElementById("mMemo").value.trim();
-  it.tags = [...document.querySelectorAll("#tagPills .pill.active")].map(p=>p.textContent);
-
-  const ll = parseLatLng(document.getElementById("mLatLng").value);
-  if(ll){ it.lat = ll.lat; it.lng = ll.lng; }
-
-  it.updatedAt = nowISO();
-  it.history = it.history || [];
-  it.history.push({at: nowISO(), action:"詳細更新"});
-
-  save();
-  renderList();
-  renderReport();
-  refreshMapPins(false);
-  toast("保存しました");
-  closeModal();
-};
-
-window.deleteFromModal = function(){
-  if(!modalId) return;
-  if(!confirm("このデータを削除しますか？")) return;
-  list = list.filter(x=>x.id!==modalId);
-  save();
-  renderList();
-  renderReport();
-  refreshMapPins(false);
-  toast("削除しました");
-  closeModal();
-};
-
-window.doneFromModal = function(){
-  const it = getModalItem();
-  if(!it) return;
-  // 先に保存（必須反映）
-  const name = document.getElementById("mName").value.trim();
-  const addr = document.getElementById("mAddress").value.trim();
-  if(!name || !addr){
-    document.getElementById("requiredWarn").style.display = "block";
-    toast("住所/名前が必須");
-    return;
-  }
-  saveModalInline();
-
-  const isPost = (it.kind==="手紙（郵便物）" || it.kind==="ポスト投函");
-  it.status = isPost ? "post" : "done";
-  it.updatedAt = nowISO();
-  it.history.push({at: nowISO(), action: isPost ? "投函" : "完了"});
-  save();
-  renderList();
-  refreshMapPins(false);
-  toast(isPost ? "投函" : "完了");
-  closeModal();
-};
-
-window.absentFromModal = function(){
-  const it = getModalItem();
-  if(!it) return;
-  const name = document.getElementById("mName").value.trim();
-  const addr = document.getElementById("mAddress").value.trim();
-  if(!name || !addr){
-    document.getElementById("requiredWarn").style.display = "block";
-    toast("住所/名前が必須");
-    return;
-  }
-  saveModalInline();
-
-  it.status = "absent";
-  it.updatedAt = nowISO();
-  it.history.push({at: nowISO(), action: "不在"});
-  save();
-  renderList();
-  refreshMapPins(false);
-  toast("不在");
-  closeModal();
-};
-
-function saveModalInline(){
-  const it = getModalItem();
-  if(!it) return;
-  it.code = document.getElementById("mCode").value.trim() || it.code;
-  it.kind = document.getElementById("mKind").value;
-  it.name = document.getElementById("mName").value.trim();
-  it.address = document.getElementById("mAddress").value.trim();
-  it.phone = document.getElementById("mPhone").value.trim();
-  it.memo = document.getElementById("mMemo").value.trim();
-  it.tags = [...document.querySelectorAll("#tagPills .pill.active")].map(p=>p.textContent);
-  const ll = parseLatLng(document.getElementById("mLatLng").value);
-  if(ll){ it.lat = ll.lat; it.lng = ll.lng; }
-}
-
-/* Geo in modal */
-window.geoFromModal = async function(){
-  const it = getModalItem();
-  if(!it) return;
-  const addr = document.getElementById("mAddress").value.trim();
-  if(!addr){ toast("住所が空です"); return; }
-  toast("住所→座標 取得中…");
-  try{
-    const r = await geocodeAddress(addr);
-    if(!r){ toast("座標取得できません"); return; }
-    document.getElementById("mLatLng").value = `${r.lat},${r.lng}`;
-    toast("座標取得OK");
-  }catch{
-    toast("座標取得失敗");
-  }
-};
-window.clearLatLng = function(){
-  document.getElementById("mLatLng").value = "";
-};
-
-/* Nav/copy/call */
-window.navFromModal = function(){
-  if(!modalId) return;
-  navTo(modalId);
-};
-window.copyAddress = function(){
-  const addr = document.getElementById("mAddress").value.trim();
-  if(!addr){ toast("住所が空です"); return; }
-  navigator.clipboard?.writeText(addr).then(()=>toast("住所コピーOK")).catch(()=>toast("コピー失敗"));
-};
-window.callPhone = function(){
-  const ph = document.getElementById("mPhone").value.trim();
-  if(!ph){ toast("電話が空です"); return; }
-  window.location.href = `tel:${encodeURIComponent(ph)}`;
-};
-
-/* =========================
-   OCR (address/name/code candidates)
-========================= */
-function setOCRProgress(pct, text){
-  document.getElementById("ocrBar").style.width = `${pct}%`;
-  document.getElementById("ocrStatus").textContent = text;
-}
-function addCandidateButton(label, onClick){
-  const b = document.createElement("button");
-  b.className = "pill";
-  b.textContent = label;
-  b.onclick = onClick;
-  document.getElementById("ocrCandidates").appendChild(b);
-}
-function extractCandidates(text){
-  const raw = text || "";
-  const t = raw.replace(/\s+/g," ").trim();
-
-  // code candidates
-  const codeMatches = [...t.matchAll(/[A-Z0-9\-]{8,22}/g)].map(m=>m[0]);
-  const numMatches = [...t.matchAll(/\d{8,22}/g)].map(m=>m[0]);
-  const codes = Array.from(new Set([...codeMatches, ...numMatches])).slice(0,8);
-
-  // address candidates (very practical heuristic)
-  const lines = raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const addrLines = lines.filter(l=>/(都|道|府|県)/.test(l) && (/(市|区|町|村)/.test(l) || /\d{1,3}[-丁目番地号]/.test(l)));
-  const addrCandidates = [];
-  for(let i=0;i<lines.length;i++){
-    const a = lines[i], b = lines[i+1]||"", c = lines[i+2]||"";
-    const comb2 = (a+" "+b).trim();
-    const comb3 = (a+" "+b+" "+c).trim();
-    if(/(都|道|府|県)/.test(comb2) && /(市|区|町|村)/.test(comb2)) addrCandidates.push(comb2);
-    if(/(都|道|府|県)/.test(comb3) && /(市|区|町|村)/.test(comb3)) addrCandidates.push(comb3);
-  }
-  const addrs = Array.from(new Set([...addrLines, ...addrCandidates])).slice(0,8);
-
-  // name candidates: lines that look like Japanese names (simple)
-  const nameLines = lines
-    .filter(l=>l.length<=12 && /[一-龥ぁ-んァ-ン]/.test(l))
-    .filter(l=>!/(都|道|府|県|市|区|町|村|丁目|番地|号)/.test(l))
-    .slice(0,6);
-
-  return { codes, addrs, names:nameLines, raw };
-}
-
-async function runOCRFile(){
-  if(!modalId){ toast("対象なし"); return; }
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.onchange = async ()=>{
-    const file = input.files?.[0];
-    if(!file) return;
-    setOCRProgress(5, "OCR準備中…");
-    document.getElementById("ocrCandidates").innerHTML = "";
-    try{
-      const res = await Tesseract.recognize(file, "jpn", {
-        logger: m=>{
-          if(m.status==="recognizing text"){
-            setOCRProgress(Math.floor((m.progress||0)*100), `OCR中… ${Math.floor((m.progress||0)*100)}%`);
-          }
-        }
-      });
-      setOCRProgress(100, "OCR完了");
-      const text = res?.data?.text || "";
-      const cand = extractCandidates(text);
-
-      addCandidateButton("【全文表示】", ()=> alert(cand.raw.slice(0,5000)));
-
-      cand.codes.forEach(c=>{
-        addCandidateButton(`コード：${c}`, ()=>{
-          document.getElementById("mCode").value = c;
-          toast("コード反映");
-        });
-      });
-      cand.names.forEach(n=>{
-        addCandidateButton(`名前：${n}`, ()=>{
-          document.getElementById("mName").value = n;
-          toast("名前反映");
-        });
-      });
-      cand.addrs.forEach(a=>{
-        addCandidateButton(`住所：${a}`, ()=>{
-          document.getElementById("mAddress").value = a;
-          toast("住所反映");
-        });
-      });
-      if(!cand.codes.length && !cand.addrs.length && !cand.names.length){
-        addCandidateButton("候補なし（全文確認）", ()=> alert(cand.raw.slice(0,5000)));
-      }
-    }catch(e){
-      setOCRProgress(0, "OCR失敗（明るく/寄せて再試行）");
-    }
-  };
-  input.click();
-}
-window.runOCRFile = runOCRFile;
-
-async function captureOCRFromCamera(){
-  if(!modalId){ toast("対象なし"); return; }
-  if(!video || !stream){
-    toast("カメラ起動中に実行してください（SCAN開始）");
-    return;
-  }
-  try{
-    const canvas = document.getElementById("capCanvas");
-    const w = video.videoWidth || 1280;
-    const h = video.videoHeight || 720;
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, w, h);
-
-    setOCRProgress(5, "カメラOCR中…");
-    document.getElementById("ocrCandidates").innerHTML = "";
-
-    const res = await Tesseract.recognize(canvas, "jpn", {
-      logger: m=>{
-        if(m.status==="recognizing text"){
-          setOCRProgress(Math.floor((m.progress||0)*100), `OCR中… ${Math.floor((m.progress||0)*100)}%`);
-        }
-      }
-    });
-
-    setOCRProgress(100, "OCR完了");
-    const text = res?.data?.text || "";
-    const cand = extractCandidates(text);
-
-    addCandidateButton("【全文表示】", ()=> alert(cand.raw.slice(0,5000)));
-    cand.codes.forEach(c=> addCandidateButton(`コード：${c}`, ()=>{ document.getElementById("mCode").value=c; toast("コード反映"); }));
-    cand.names.forEach(n=> addCandidateButton(`名前：${n}`, ()=>{ document.getElementById("mName").value=n; toast("名前反映"); }));
-    cand.addrs.forEach(a=> addCandidateButton(`住所：${a}`, ()=>{ document.getElementById("mAddress").value=a; toast("住所反映"); }));
-    if(!cand.codes.length && !cand.addrs.length && !cand.names.length){
-      addCandidateButton("候補なし（全文確認）", ()=> alert(cand.raw.slice(0,5000)));
-    }
-  }catch{
-    setOCRProgress(0, "OCR失敗（ブレ/暗さ）→写真OCR推奨");
-  }
-}
-window.captureOCRFromCamera = captureOCRFromCamera;
-
-/* =========================
-   Map open pin from list
-========================= */
-let mapReadyOnce = false;
-function openMapTab(){
-  document.querySelector('[data-tab="map"]').click();
-}
-function openListTab(){
-  document.querySelector('[data-tab="list"]').click();
-}
-
-/* =========================
-   Toast
-========================= */
-let toastTimer=null;
-function toast(msg){
-  clearTimeout(toastTimer);
-  let el = document.getElementById("toast");
-  if(!el){
-    el = document.createElement("div");
-    el.id = "toast";
-    el.style.position="fixed";
-    el.style.left="50%";
-    el.style.bottom="22px";
-    el.style.transform="translateX(-50%)";
-    el.style.background="rgba(15,23,42,.92)";
-    el.style.color="#fff";
-    el.style.padding="10px 14px";
-    el.style.borderRadius="999px";
-    el.style.fontWeight="900";
-    el.style.fontSize="12px";
-    el.style.boxShadow="0 14px 30px rgba(0,0,0,.18)";
-    el.style.zIndex="9999";
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity="1";
-  toastTimer = setTimeout(()=>{ el.style.opacity="0"; }, 1300);
-}
+renderList();
 </script>
 </body>
 </html>
