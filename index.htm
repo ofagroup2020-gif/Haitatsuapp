@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>OFA 配達アプリ（Web）</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <!-- PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root{
+      --ofa-black:#111;
+      --ofa-yellow:#FFD400;
+      --ofa-red:#E53935;
+      --ofa-blue:#1565C0;
+      --bg:#0f1115;
+      --card:#151a22;
+      --muted:#9aa4b2;
+      --text:#eef2f7;
+      --line:#263044;
+      --ok:#18b26a;
+      --warn:#ffb020;
+      --bad:#ff4d4d;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Noto Sans JP", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1100px 600px at 20% -10%, rgba(255,212,0,.25), transparent 60%),
+                  radial-gradient(900px 500px at 100% 10%, rgba(21,101,192,.20), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      position:sticky; top:0; z-index:50;
+      background: linear-gradient(90deg, rgba(255,212,0,.18), rgba(229,57,53,.12), rgba(21,101,192,.12));
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid rgba(38,48,68,.7);
+      padding:14px 14px 10px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+    }
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background: linear-gradient(135deg, var(--ofa-yellow), #fff2a8);
+      color:#000;font-weight:900;display:grid;place-items:center;
+      box-shadow:0 10px 30px rgba(255,212,0,.18);
+    }
+    .title{
+      line-height:1.1;
+    }
+    .title b{font-size:15px}
+    .title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+    .tabs{
+      display:flex; gap:8px; margin-top:10px;
+    }
+    .tab{
+      flex:1;
+      padding:10px 8px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(38,48,68,.8);
+      color:var(--text);
+      border-radius:14px;
+      font-weight:800;
+      font-size:12px;
+    }
+    .tab.active{
+      background: linear-gradient(135deg, rgba(255,212,0,.22), rgba(21,101,192,.12));
+      border-color: rgba(255,212,0,.35);
+    }
+
+    main{padding:14px; max-width:980px; margin:0 auto;}
+    .grid{display:grid; gap:12px;}
+    .card{
+      background:rgba(21,26,34,.9);
+      border:1px solid rgba(38,48,68,.9);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+    .card h2{
+      margin:0 0 10px;
+      font-size:14px;
+      letter-spacing:.02em;
+    }
+    .row{display:grid; grid-template-columns: 1fr; gap:10px;}
+    @media(min-width:720px){
+      .row.two{grid-template-columns: 1fr 1fr;}
+      .row.three{grid-template-columns: 1fr 1fr 1fr;}
+    }
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+    input, select, textarea{
+      width:100%;
+      border-radius:12px;
+      border:1px solid rgba(38,48,68,.9);
+      background:rgba(10,12,16,.55);
+      color:var(--text);
+      padding:11px 12px;
+      outline:none;
+      font-size:14px;
+    }
+    textarea{min-height:84px; resize:vertical;}
+    .btns{display:flex; gap:10px; flex-wrap:wrap;}
+    button{
+      border:0;
+      border-radius:14px;
+      padding:11px 12px;
+      font-weight:900;
+      cursor:pointer;
+      font-size:13px;
+    }
+    .btn-primary{
+      background: linear-gradient(135deg, var(--ofa-yellow), #ffe77a);
+      color:#000;
+    }
+    .btn-ghost{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(38,48,68,.9);
+      color:var(--text);
+    }
+    .btn-ok{background:rgba(24,178,106,.15); border:1px solid rgba(24,178,106,.35); color:#d7ffe8;}
+    .btn-warn{background:rgba(255,176,32,.12); border:1px solid rgba(255,176,32,.35); color:#fff3d4;}
+    .btn-bad{background:rgba(255,77,77,.10); border:1px solid rgba(255,77,77,.35); color:#ffd6d6;}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(38,48,68,.9);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:11px;
+      margin-right:8px;
+    }
+    .kpi{
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .kpi .box{
+      flex:1; min-width:140px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(38,48,68,.9);
+      border-radius:14px;
+      padding:12px;
+    }
+    .kpi .box b{display:block;font-size:18px;margin-top:4px}
+    .list{
+      display:grid; gap:10px;
+    }
+    .item{
+      border:1px solid rgba(38,48,68,.9);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(10,12,16,.35);
+    }
+    .item-top{
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+    }
+    .item-top b{font-size:14px}
+    .status{
+      font-weight:900; font-size:11px; padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(38,48,68,.9);
+      white-space:nowrap;
+    }
+    .st-created{background:rgba(255,255,255,.04); color:var(--muted)}
+    .st-out{background:rgba(21,101,192,.14); border-color:rgba(21,101,192,.35); color:#d7e8ff}
+    .st-done{background:rgba(24,178,106,.15); border-color:rgba(24,178,106,.35); color:#d7ffe8}
+    .st-absent{background:rgba(255,176,32,.14); border-color:rgba(255,176,32,.35); color:#fff3d4}
+    .st-return{background:rgba(255,77,77,.12); border-color:rgba(255,77,77,.35); color:#ffd6d6}
+    .meta{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.45}
+    .mini{color:var(--muted); font-size:11px}
+    .split{
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .hr{height:1px;background:rgba(38,48,68,.9); margin:12px 0;}
+    .cam{
+      display:none;
+      margin-top:10px;
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid rgba(38,48,68,.9);
+      background:#000;
+    }
+    video{width:100%; height:auto; display:block;}
+    .note{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">OFA</div>
+    <div class="title">
+      <b>配達アプリ（Web）</b>
+      <small>読み取り / 履歴 / 日報（PDF・CSV）</small>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="input">入力</button>
+    <button class="tab" data-tab="list">履歴</button>
+    <button class="tab" data-tab="report">日報</button>
+  </div>
+</header>
+
+<main>
+  <!-- 入力 -->
+  <section id="tab-input" class="grid">
+    <div class="card">
+      <h2>① 伝票データ入力</h2>
+
+      <div class="row two">
+        <div>
+          <label>配達日</label>
+          <input id="shipDate" type="date">
+        </div>
+        <div>
+          <label>配達員名</label>
+          <input id="driver" type="text" placeholder="例：森下 洸">
+        </div>
+      </div>
+
+      <div class="row two" style="margin-top:10px;">
+        <div>
+          <label>伝票番号（追跡番号）</label>
+          <input id="tracking" type="text" inputmode="numeric" placeholder="読み取り or 手入力">
+          <div class="mini" style="margin-top:6px;">※QR/バーコード読み取りは端末対応時のみ自動入力されます。</div>
+        </div>
+        <div>
+          <label>取引先（任意）</label>
+          <input id="client" type="text" placeholder="例：ヤマト / 佐川 / Amazon / アパレル 等">
+        </div>
+      </div>
+
+      <div class="row two" style="margin-top:10px;">
+        <div>
+          <label>住所（任意：地図起動に使用）</label>
+          <input id="address" type="text" placeholder="例：鹿児島市〇〇…">
+        </div>
+        <div>
+          <label>荷物数（任意）</label>
+          <input id="pieces" type="number" min="1" step="1" placeholder="例：1">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>メモ（任意）</label>
+          <textarea id="memo" placeholder="置き配、時間指定、注意点など"></textarea>
+        </div>
+      </div>
+
+      <div class="btns" style="margin-top:12px;">
+        <button class="btn-ghost" id="btnScan">📷 カメラで読み取り</button>
+        <button class="btn-primary" id="btnAdd">＋ 登録（未持出）</button>
+      </div>
+
+      <div class="cam" id="camBox">
+        <video id="video" playsinline></video>
+      </div>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b>運用メモ：</b><br>
+        ・まず「登録」→ その後に「持出」「完了」「不在」を押す流れが楽です。<br>
+        ・このページは端末内に保存します（オフラインでも動作）。会社共有をする場合は次段階でクラウド連携します。
+      </div>
+    </div>
+  </section>
+
+  <!-- 履歴 -->
+  <section id="tab-list" class="grid" style="display:none;">
+    <div class="card">
+      <h2>② 履歴一覧（ステータス更新）</h2>
+
+      <div class="row three">
+        <div>
+          <label>日付フィルタ</label>
+          <input id="filterDate" type="date">
+        </div>
+        <div>
+          <label>ステータス</label>
+          <select id="filterStatus">
+            <option value="">すべて</option>
+            <option value="created">未持出</option>
+            <option value="out">持出</option>
+            <option value="done">完了</option>
+            <option value="absent">不在</option>
+            <option value="return">返却/キャンセル</option>
+          </select>
+        </div>
+        <div>
+          <label>検索（伝票番号/住所/取引先）</label>
+          <input id="filterText" type="text" placeholder="検索">
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="list" id="historyList"></div>
+
+      <div class="hr"></div>
+      <div class="btns">
+        <button class="btn-ghost" id="btnExportCSVAll">CSV出力（フィルタ結果）</button>
+        <button class="btn-ghost" id="btnExportPDFAll">PDF出力（フィルタ結果）</button>
+        <button class="btn-bad" id="btnClearAll">全データ削除（注意）</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 日報 -->
+  <section id="tab-report" class="grid" style="display:none;">
+    <div class="card">
+      <h2>③ 日報（今日/指定日）</h2>
+
+      <div class="row two">
+        <div>
+          <label>対象日</label>
+          <input id="reportDate" type="date">
+        </div>
+        <div>
+          <label>配達員名（印字用）</label>
+          <input id="reportDriver" type="text" placeholder="未入力なら入力タブの配達員名を使用">
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="kpi" id="kpi"></div>
+
+      <div class="hr"></div>
+
+      <div class="btns">
+        <button class="btn-primary" id="btnExportCSVReport">CSV出力（日報）</button>
+        <button class="btn-primary" id="btnExportPDFReport">PDF出力（日報）</button>
+      </div>
+
+      <div class="note" style="margin-top:10px;">
+        ※PDFはA4で、LINE送信用にシンプルな表で出ます。
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/** =========================
+ *  データ構造
+ *  shipments: [
+ *    {
+ *      id, shipDate, driver, tracking, client, address, pieces, memo,
+ *      status: created|out|done|absent|return,
+ *      history: [{at, action, note}]
+ *    }
+ *  ]
+ * ========================= */
+const STORAGE_KEY = "ofa_shipments_v1";
+
+function nowISO(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function uid(){
+  return "S" + Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function loadShipments(){
+  try{
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  }catch(e){
+    return [];
+  }
+}
+function saveShipments(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function statusLabel(s){
+  return ({
+    created:"未持出",
+    out:"持出",
+    done:"完了",
+    absent:"不在",
+    return:"返却/キャンセル"
+  })[s] || s;
+}
+function statusClass(s){
+  return ({
+    created:"st-created",
+    out:"st-out",
+    done:"st-done",
+    absent:"st-absent",
+    return:"st-return"
+  })[s] || "st-created";
+}
+
+/** =========================
+ *  タブ
+ * ========================= */
+const tabs = document.querySelectorAll(".tab");
+tabs.forEach(t=>{
+  t.addEventListener("click", ()=>{
+    tabs.forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const name = t.dataset.tab;
+    document.querySelectorAll("main section").forEach(sec=>sec.style.display="none");
+    document.getElementById("tab-"+name).style.display="grid";
+    if(name==="list") renderList();
+    if(name==="report") renderReport();
+  });
+});
+
+/** =========================
+ *  初期値（日付）
+ * ========================= */
+const today = new Date();
+const pad = n => String(n).padStart(2,"0");
+const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+document.getElementById("shipDate").value = todayStr;
+document.getElementById("filterDate").value = todayStr;
+document.getElementById("reportDate").value = todayStr;
+
+/** =========================
+ *  登録
+ * ========================= */
+document.getElementById("btnAdd").addEventListener("click", ()=>{
+  const shipDate = document.getElementById("shipDate").value || todayStr;
+  const driver = (document.getElementById("driver").value || "").trim();
+  const tracking = (document.getElementById("tracking").value || "").trim();
+  const client = (document.getElementById("client").value || "").trim();
+  const address = (document.getElementById("address").value || "").trim();
+  const pieces = parseInt(document.getElementById("pieces").value || "1",10);
+  const memo = (document.getElementById("memo").value || "").trim();
+
+  if(!tracking){
+    alert("伝票番号（追跡番号）を入力してください");
+    return;
+  }
+
+  const list = loadShipments();
+  // 同じ番号があれば警告（重複防止）
+  const dup = list.find(x => x.tracking === tracking && x.shipDate === shipDate);
+  if(dup){
+    if(!confirm("同じ伝票番号が既にあります。重複登録しますか？")) return;
+  }
+
+  const item = {
+    id: uid(),
+    shipDate,
+    driver,
+    tracking,
+    client,
+    address,
+    pieces: Number.isFinite(pieces) && pieces>0 ? pieces : 1,
+    memo,
+    status: "created",
+    history: [{ at: nowISO(), action: "登録", note: "" }]
+  };
+  list.unshift(item);
+  saveShipments(list);
+
+  // 入力クリア（追跡番号だけ空に）
+  document.getElementById("tracking").value = "";
+  document.getElementById("memo").value = "";
+  document.getElementById("pieces").value = "";
+
+  alert("登録しました（未持出）");
+});
+
+/** =========================
+ *  履歴一覧
+ * ========================= */
+["filterDate","filterStatus","filterText"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", renderList);
+});
+
+function applyFilters(list){
+  const d = document.getElementById("filterDate").value;
+  const st = document.getElementById("filterStatus").value;
+  const q = (document.getElementById("filterText").value || "").trim().toLowerCase();
+
+  return list.filter(x=>{
+    const okD = d ? x.shipDate === d : true;
+    const okS = st ? x.status === st : true;
+    const hay = `${x.tracking} ${x.address} ${x.client} ${x.memo}`.toLowerCase();
+    const okQ = q ? hay.includes(q) : true;
+    return okD && okS && okQ;
+  });
+}
+
+function renderList(){
+  const box = document.getElementById("historyList");
+  const list = applyFilters(loadShipments());
+
+  if(list.length===0){
+    box.innerHTML = `<div class="note">該当データがありません。</div>`;
+    return;
+  }
+
+  box.innerHTML = list.map(x=>{
+    const last = x.history?.[x.history.length-1];
+    const lastLine = last ? `${last.at} / ${last.action}` : "";
+    const mapLink = x.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.address)}` : "";
+    return `
+      <div class="item">
+        <div class="item-top">
+          <div>
+            <b>${escapeHtml(x.tracking)}</b>
+            <div class="mini">${escapeHtml(x.client || "（取引先未入力）")} / ${escapeHtml(x.shipDate)}</div>
+          </div>
+          <div class="status ${statusClass(x.status)}">${statusLabel(x.status)}</div>
+        </div>
+        <div class="meta">
+          住所：${escapeHtml(x.address || "（未入力）")}<br>
+          個数：${escapeHtml(String(x.pieces || 1))} ／ 配達員：${escapeHtml(x.driver || "（未入力）")}<br>
+          最終：${escapeHtml(lastLine)}
+        </div>
+
+        <div class="split">
+          <div class="btns">
+            <button class="btn-ok" onclick="updateStatus('${x.id}','out','持出')">持出</button>
+            <button class="btn-ok" onclick="updateStatus('${x.id}','done','完了')">完了</button>
+            <button class="btn-warn" onclick="updateStatus('${x.id}','absent','不在')">不在</button>
+            <button class="btn-bad" onclick="updateStatus('${x.id}','return','返却/キャンセル')">返却</button>
+          </div>
+          <div class="btns">
+            ${mapLink ? `<button class="btn-ghost" onclick="openMap('${mapLink}')">🗺 地図</button>` : `<button class="btn-ghost" disabled>🗺 地図</button>`}
+            <button class="btn-ghost" onclick="showDetail('${x.id}')">詳細</button>
+            <button class="btn-bad" onclick="deleteOne('${x.id}')">削除</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function openMap(url){
+  window.open(url, "_blank");
+}
+
+function updateStatus(id, status, label){
+  const list = loadShipments();
+  const item = list.find(x=>x.id===id);
+  if(!item) return;
+
+  item.status = status;
+  item.history = item.history || [];
+  item.history.push({ at: nowISO(), action: label, note: "" });
+  saveShipments(list);
+  renderList();
+}
+
+function deleteOne(id){
+  if(!confirm("このデータを削除しますか？")) return;
+  const list = loadShipments().filter(x=>x.id!==id);
+  saveShipments(list);
+  renderList();
+}
+
+function showDetail(id){
+  const list = loadShipments();
+  const item = list.find(x=>x.id===id);
+  if(!item) return;
+  const h = (item.history||[]).map(r=>`・${r.at}：${r.action}`).join("\n");
+  alert(
+`【詳細】
+伝票番号：${item.tracking}
+日付：${item.shipDate}
+取引先：${item.client||""}
+住所：${item.address||""}
+個数：${item.pieces||1}
+配達員：${item.driver||""}
+メモ：${item.memo||""}
+
+【履歴】
+${h}`
+  );
+}
+
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[m]));
+}
+
+/** =========================
+ *  エクスポート（CSV）
+ * ========================= */
+function toCSV(rows){
+  const esc = v => `"${String(v??"").replaceAll('"','""')}"`;
+  return rows.map(r=>r.map(esc).join(",")).join("\n");
+}
+function downloadFile(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 500);
+}
+
+function rowsFromList(list){
+  return list.map(x=>{
+    const last = x.history?.[x.history.length-1];
+    return [
+      x.shipDate,
+      x.driver,
+      x.tracking,
+      x.client,
+      x.address,
+      x.pieces,
+      statusLabel(x.status),
+      last?.at || "",
+      (x.memo||"")
+    ];
+  });
+}
+
+document.getElementById("btnExportCSVAll").addEventListener("click", ()=>{
+  const list = applyFilters(loadShipments());
+  const header = ["日付","配達員","伝票番号","取引先","住所","個数","ステータス","最終更新","メモ"];
+  const csv = toCSV([header, ...rowsFromList(list)]);
+  downloadFile(csv, `OFA_配達履歴_${todayStr}.csv`, "text/csv;charset=utf-8");
+});
+
+/** =========================
+ *  PDF出力（一覧/日報）
+ * ========================= */
+function exportPDF(title, list, filename, metaLines=[]){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+  doc.setFontSize(14);
+  doc.text(title, 14, 14);
+
+  doc.setFontSize(10);
+  let y = 20;
+  metaLines.forEach(line=>{
+    doc.text(line, 14, y);
+    y += 5;
+  });
+
+  const head = [["日付","配達員","伝票番号","取引先","個数","ステータス","最終更新"]];
+  const body = list.map(x=>{
+    const last = x.history?.[x.history.length-1];
+    return [
+      x.shipDate,
+      x.driver || "",
+      x.tracking,
+      x.client || "",
+      String(x.pieces || 1),
+      statusLabel(x.status),
+      (last?.at || "")
+    ];
+  });
+
+  doc.autoTable({
+    startY: y + 2,
+    head,
+    body,
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [20, 26, 34] }, // dark-ish
+    theme: "grid"
+  });
+
+  // フッター
+  const pageCount = doc.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.text(`OFA GROUP / ${todayStr} / Page ${i}/${pageCount}`, 14, 292);
+  }
+
+  doc.save(filename);
+}
+
+document.getElementById("btnExportPDFAll").addEventListener("click", ()=>{
+  const list = applyFilters(loadShipments());
+  exportPDF("OFA 配達履歴（フィルタ結果）", list, `OFA_配達履歴_${todayStr}.pdf`, [
+    `出力日時：${nowISO()}`
+  ]);
+});
+
+/** =========================
+ *  全削除
+ * ========================= */
+document.getElementById("btnClearAll").addEventListener("click", ()=>{
+  if(!confirm("全データを削除します。本当に実行しますか？")) return;
+  if(!confirm("最終確認：復元できません。削除しますか？")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderList();
+  alert("削除しました");
+});
+
+/** =========================
+ *  日報
+ * ========================= */
+function listByDate(dateStr){
+  return loadShipments().filter(x=>x.shipDate===dateStr);
+}
+function renderReport(){
+  const dateStr = document.getElementById("reportDate").value || todayStr;
+  const list = listByDate(dateStr);
+
+  // driver name
+  const driver = (document.getElementById("reportDriver").value || "").trim()
+    || (document.getElementById("driver").value || "").trim();
+
+  const total = list.reduce((a,x)=>a+(x.pieces||1),0);
+  const cCreated = list.filter(x=>x.status==="created").reduce((a,x)=>a+(x.pieces||1),0);
+  const cOut = list.filter(x=>x.status==="out").reduce((a,x)=>a+(x.pieces||1),0);
+  const cDone = list.filter(x=>x.status==="done").reduce((a,x)=>a+(x.pieces||1),0);
+  const cAbsent = list.filter(x=>x.status==="absent").reduce((a,x)=>a+(x.pieces||1),0);
+  const cReturn = list.filter(x=>x.status==="return").reduce((a,x)=>a+(x.pieces||1),0);
+
+  document.getElementById("kpi").innerHTML = `
+    <div class="box"><div class="mini">対象日</div><b>${escapeHtml(dateStr)}</b></div>
+    <div class="box"><div class="mini">配達員</div><b>${escapeHtml(driver||"（未入力）")}</b></div>
+    <div class="box"><div class="mini">合計個数</div><b>${total}</b></div>
+    <div class="box"><div class="mini">完了</div><b>${cDone}</b></div>
+    <div class="box"><div class="mini">不在</div><b>${cAbsent}</b></div>
+    <div class="box"><div class="mini">未持出</div><b>${cCreated}</b></div>
+    <div class="box"><div class="mini">持出</div><b>${cOut}</b></div>
+    <div class="box"><div class="mini">返却</div><b>${cReturn}</b></div>
+  `;
+}
+
+document.getElementById("reportDate").addEventListener("change", renderReport);
+document.getElementById("reportDriver").addEventListener("input", renderReport);
+
+document.getElementById("btnExportCSVReport").addEventListener("click", ()=>{
+  const dateStr = document.getElementById("reportDate").value || todayStr;
+  const list = listByDate(dateStr);
+
+  const header = ["日付","配達員","伝票番号","取引先","住所","個数","ステータス","最終更新","メモ"];
+  const csv = toCSV([header, ...rowsFromList(list)]);
+  downloadFile(csv, `OFA_日報_${dateStr}.csv`, "text/csv;charset=utf-8");
+});
+
+document.getElementById("btnExportPDFReport").addEventListener("click", ()=>{
+  const dateStr = document.getElementById("reportDate").value || todayStr;
+  const list = listByDate(dateStr);
+  const driver = (document.getElementById("reportDriver").value || "").trim()
+    || (document.getElementById("driver").value || "").trim();
+
+  exportPDF("OFA 日報（配達）", list, `OFA_日報_${dateStr}.pdf`, [
+    `対象日：${dateStr}`,
+    `配達員：${driver || "（未入力）"}`,
+    `出力日時：${nowISO()}`
+  ]);
+});
+
+/** =========================
+ *  カメラ読み取り
+ *  - BarcodeDetector API が使える端末は簡単にスキャン可能
+ *  - 非対応端末は手入力運用（ここが一番安定）
+ * ========================= */
+let stream = null;
+let scanning = false;
+
+document.getElementById("btnScan").addEventListener("click", async ()=>{
+  const camBox = document.getElementById("camBox");
+  const video = document.getElementById("video");
+
+  if(scanning){
+    stopCamera();
+    camBox.style.display = "none";
+    scanning = false;
+    return;
+  }
+
+  if(!("mediaDevices" in navigator) || !navigator.mediaDevices.getUserMedia){
+    alert("この端末ではカメラ機能が利用できません。手入力で運用してください。");
+    return;
+  }
+
+  camBox.style.display = "block";
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
+    video.srcObject = stream;
+    await video.play();
+  }catch(e){
+    alert("カメラ起動に失敗しました。HTTPSか、権限設定を確認してください。");
+    camBox.style.display = "none";
+    return;
+  }
+
+  // BarcodeDetector（対応端末のみ）
+  if(!("BarcodeDetector" in window)){
+    alert("この端末は自動読み取りに非対応です。手入力で運用してください。");
+    return;
+  }
+
+  const formats = ["qr_code","ean_13","ean_8","code_128","code_39","itf","upc_a","upc_e","data_matrix","pdf417"];
+  const detector = new BarcodeDetector({ formats });
+  scanning = true;
+
+  const tick = async ()=>{
+    if(!scanning) return;
+    try{
+      const barcodes = await detector.detect(video);
+      if(barcodes && barcodes.length){
+        // 一番最初の値を採用
+        const val = barcodes[0].rawValue || "";
+        if(val){
+          document.getElementById("tracking").value = val;
+          alert("読み取り完了： " + val);
+          stopCamera();
+          camBox.style.display = "none";
+          scanning = false;
+          return;
+        }
+      }
+    }catch(e){
+      // ignore
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+
+function stopCamera(){
+  try{
+    if(stream){
+      stream.getTracks().forEach(t=>t.stop());
+      stream = null;
+    }
+  }catch(e){}
+}
+
+// 初回表示
+renderList();
+renderReport();
+</script>
+
+</body>
+</html>
