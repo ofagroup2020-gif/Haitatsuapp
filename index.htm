@@ -15,472 +15,575 @@
 
   <style>
     :root{
-      --ofa-black:#111;
       --ofa-yellow:#FFD400;
       --ofa-red:#E53935;
       --ofa-blue:#1565C0;
-      --bg:#0f1115;
-      --card:#151a22;
-      --muted:#9aa4b2;
-      --text:#eef2f7;
-      --line:#263044;
-      --ok:#18b26a;
-      --warn:#ffb020;
-      --bad:#ff4d4d;
-      --radius:16px;
+      --ink:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --bg:#f7f8fb;
+      --card:#ffffff;
+      --shadow: 0 10px 30px rgba(17,24,39,.10);
+      --r:18px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:"Noto Sans JP", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: radial-gradient(1100px 600px at 20% -10%, rgba(255,212,0,.25), transparent 60%),
-                  radial-gradient(900px 500px at 100% 10%, rgba(21,101,192,.20), transparent 55%),
-                  var(--bg);
-      color:var(--text);
+      color:var(--ink);
+      background:
+        radial-gradient(1000px 500px at 10% -10%, rgba(255,212,0,.35), transparent 55%),
+        radial-gradient(900px 480px at 100% 0%, rgba(21,101,192,.18), transparent 55%),
+        radial-gradient(900px 480px at 70% 110%, rgba(229,57,53,.12), transparent 55%),
+        var(--bg);
     }
     header{
       position:sticky; top:0; z-index:50;
-      background: linear-gradient(90deg, rgba(255,212,0,.18), rgba(229,57,53,.12), rgba(21,101,192,.12));
+      background:rgba(255,255,255,.85);
       backdrop-filter: blur(10px);
-      border-bottom:1px solid rgba(38,48,68,.7);
+      border-bottom:1px solid rgba(229,231,235,.9);
+    }
+    .top{
       padding:14px 14px 10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      max-width:1100px; margin:0 auto;
     }
-    .brand{
-      display:flex; align-items:center; gap:10px;
-    }
+    .brand{display:flex; align-items:center; gap:10px;}
     .logo{
-      width:36px;height:36px;border-radius:12px;
+      width:40px;height:40px;border-radius:14px;
       background: linear-gradient(135deg, var(--ofa-yellow), #fff2a8);
-      color:#000;font-weight:900;display:grid;place-items:center;
-      box-shadow:0 10px 30px rgba(255,212,0,.18);
+      box-shadow: 0 10px 22px rgba(255,212,0,.25);
+      display:grid; place-items:center;
+      font-weight:900;
     }
-    .title{
-      line-height:1.1;
+    .ttl b{display:block; font-size:14px; letter-spacing:.02em}
+    .ttl small{display:block; color:var(--muted); font-size:11px; margin-top:2px}
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:12px;
+      color:var(--muted);
+      box-shadow: 0 8px 18px rgba(17,24,39,.06);
+      white-space:nowrap;
     }
-    .title b{font-size:15px}
-    .title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
-    .tabs{
-      display:flex; gap:8px; margin-top:10px;
+    .chip b{color:var(--ink)}
+    nav{
+      padding:0 14px 12px;
+      max-width:1100px; margin:0 auto;
+      display:flex; gap:10px;
     }
     .tab{
       flex:1;
-      padding:10px 8px;
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(38,48,68,.8);
-      color:var(--text);
-      border-radius:14px;
-      font-weight:800;
+      padding:12px 10px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-weight:900;
       font-size:12px;
+      box-shadow: 0 8px 18px rgba(17,24,39,.06);
+      cursor:pointer;
     }
     .tab.active{
-      background: linear-gradient(135deg, rgba(255,212,0,.22), rgba(21,101,192,.12));
-      border-color: rgba(255,212,0,.35);
+      border-color: rgba(21,101,192,.35);
+      background: linear-gradient(135deg, rgba(21,101,192,.10), rgba(255,212,0,.16));
     }
 
-    main{padding:14px; max-width:980px; margin:0 auto;}
-    .grid{display:grid; gap:12px;}
+    main{max-width:1100px;margin:0 auto;padding:14px; display:grid; gap:12px;}
     .card{
-      background:rgba(21,26,34,.9);
-      border:1px solid rgba(38,48,68,.9);
-      border-radius:var(--radius);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r);
       padding:14px;
-      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+      box-shadow:var(--shadow);
     }
-    .card h2{
-      margin:0 0 10px;
-      font-size:14px;
-      letter-spacing:.02em;
+    .card h2{margin:0 0 10px; font-size:14px}
+    .grid{display:grid; gap:10px;}
+    @media(min-width:820px){
+      .grid.two{grid-template-columns: 1fr 1fr;}
+      .grid.three{grid-template-columns: 1fr 1fr 1fr;}
     }
-    .row{display:grid; grid-template-columns: 1fr; gap:10px;}
-    @media(min-width:720px){
-      .row.two{grid-template-columns: 1fr 1fr;}
-      .row.three{grid-template-columns: 1fr 1fr 1fr;}
-    }
-    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
     input, select, textarea{
       width:100%;
-      border-radius:12px;
-      border:1px solid rgba(38,48,68,.9);
-      background:rgba(10,12,16,.55);
-      color:var(--text);
-      padding:11px 12px;
-      outline:none;
+      border-radius:14px;
+      border:1px solid var(--line);
+      padding:12px 12px;
       font-size:14px;
+      outline:none;
+      background:#fff;
     }
-    textarea{min-height:84px; resize:vertical;}
-    .btns{display:flex; gap:10px; flex-wrap:wrap;}
+    textarea{min-height:90px; resize:vertical}
+    .btns{display:flex; flex-wrap:wrap; gap:10px;}
     button{
       border:0;
-      border-radius:14px;
-      padding:11px 12px;
+      border-radius:16px;
+      padding:12px 12px;
       font-weight:900;
       cursor:pointer;
       font-size:13px;
     }
-    .btn-primary{
-      background: linear-gradient(135deg, var(--ofa-yellow), #ffe77a);
-      color:#000;
-    }
-    .btn-ghost{
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(38,48,68,.9);
-      color:var(--text);
-    }
-    .btn-ok{background:rgba(24,178,106,.15); border:1px solid rgba(24,178,106,.35); color:#d7ffe8;}
-    .btn-warn{background:rgba(255,176,32,.12); border:1px solid rgba(255,176,32,.35); color:#fff3d4;}
-    .btn-bad{background:rgba(255,77,77,.10); border:1px solid rgba(255,77,77,.35); color:#ffd6d6;}
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(38,48,68,.9);
-      background:rgba(255,255,255,.04);
-      color:var(--muted);
-      font-size:11px;
-      margin-right:8px;
-    }
-    .kpi{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-    .kpi .box{
-      flex:1; min-width:140px;
-      background:rgba(255,255,255,.03);
-      border:1px solid rgba(38,48,68,.9);
-      border-radius:14px;
+    .btn-primary{background: linear-gradient(135deg, var(--ofa-yellow), #ffe77a); color:#111;}
+    .btn-blue{background: linear-gradient(135deg, rgba(21,101,192,.95), rgba(21,101,192,.75)); color:#fff;}
+    .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--ink);}
+    .btn-ok{background: rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.35); color:#065f46;}
+    .btn-warn{background: rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); color:#7c2d12;}
+    .btn-bad{background: rgba(239,68,68,.10); border:1px solid rgba(239,68,68,.30); color:#7f1d1d;}
+    .btn-mini{padding:10px 10px; border-radius:14px; font-size:12px;}
+
+    .note{color:var(--muted); font-size:12px; line-height:1.6}
+    .hr{height:1px;background:var(--line); margin:12px 0;}
+
+    /* Scanner */
+    .scanWrap{
+      border:1px dashed rgba(21,101,192,.35);
+      background: linear-gradient(135deg, rgba(21,101,192,.05), rgba(255,212,0,.10));
+      border-radius:18px;
       padding:12px;
     }
-    .kpi .box b{display:block;font-size:18px;margin-top:4px}
-    .list{
-      display:grid; gap:10px;
-    }
-    .item{
-      border:1px solid rgba(38,48,68,.9);
-      border-radius:14px;
-      padding:12px;
-      background:rgba(10,12,16,.35);
-    }
-    .item-top{
-      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
-    }
-    .item-top b{font-size:14px}
-    .status{
-      font-weight:900; font-size:11px; padding:6px 10px; border-radius:999px;
-      border:1px solid rgba(38,48,68,.9);
-      white-space:nowrap;
-    }
-    .st-created{background:rgba(255,255,255,.04); color:var(--muted)}
-    .st-out{background:rgba(21,101,192,.14); border-color:rgba(21,101,192,.35); color:#d7e8ff}
-    .st-done{background:rgba(24,178,106,.15); border-color:rgba(24,178,106,.35); color:#d7ffe8}
-    .st-absent{background:rgba(255,176,32,.14); border-color:rgba(255,176,32,.35); color:#fff3d4}
-    .st-return{background:rgba(255,77,77,.12); border-color:rgba(255,77,77,.35); color:#ffd6d6}
-    .meta{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.45}
-    .mini{color:var(--muted); font-size:11px}
-    .split{
-      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
-      margin-top:10px;
-    }
-    .hr{height:1px;background:rgba(38,48,68,.9); margin:12px 0;}
-    .cam{
+    .camBox{
       display:none;
       margin-top:10px;
-      border-radius:14px;
       overflow:hidden;
-      border:1px solid rgba(38,48,68,.9);
+      border-radius:16px;
+      border:1px solid var(--line);
       background:#000;
     }
     video{width:100%; height:auto; display:block;}
-    .note{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.55;
+    .scanHint{
+      display:flex; gap:10px; align-items:flex-start;
+      color:var(--muted); font-size:12px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;background:var(--ofa-red);
+      box-shadow:0 0 0 6px rgba(229,57,53,.10);
+      margin-top:4px;
+    }
+
+    /* List */
+    .toolbar{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
+    }
+    .toolbar .left{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+    .kpis{display:flex; flex-wrap:wrap; gap:10px;}
+    .kpi{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      box-shadow: 0 8px 18px rgba(17,24,39,.06);
+      min-width:130px;
+    }
+    .kpi small{display:block;color:var(--muted); font-size:11px}
+    .kpi b{display:block; font-size:18px; margin-top:2px}
+
+    .list{display:grid; gap:10px; margin-top:12px;}
+    .item{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:12px;
+      background:#fff;
+    }
+    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+    .itemTop b{font-size:14px}
+    .tag{
+      font-weight:900; font-size:11px;
+      padding:7px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      white-space:nowrap;
+    }
+    .st-created{background:#f9fafb; color:var(--muted)}
+    .st-out{background:rgba(21,101,192,.10); border-color:rgba(21,101,192,.22); color:#0b3a7a}
+    .st-done{background:rgba(16,185,129,.10); border-color:rgba(16,185,129,.22); color:#065f46}
+    .st-absent{background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.25); color:#7c2d12}
+    .st-return{background:rgba(239,68,68,.08); border-color:rgba(239,68,68,.22); color:#7f1d1d}
+    .meta{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.55}
+    .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
+    .actions .grow{flex:1}
+    .mini{color:var(--muted); font-size:11px}
+
+    /* Pop accent */
+    .popLine{
+      height:4px; border-radius:999px;
+      background: linear-gradient(90deg, var(--ofa-yellow), var(--ofa-red), var(--ofa-blue));
+      margin-top:10px;
     }
   </style>
 </head>
-<body>
 
+<body>
 <header>
-  <div class="brand">
-    <div class="logo">OFA</div>
-    <div class="title">
-      <b>配達アプリ（Web）</b>
-      <small>読み取り / 履歴 / 日報（PDF・CSV）</small>
+  <div class="top">
+    <div class="brand">
+      <div class="logo">OFA</div>
+      <div class="ttl">
+        <b>配達アプリ（Web）</b>
+        <small>SCAN → リスト → ナビ → 完了/不在 → 日報</small>
+      </div>
     </div>
+    <div class="chip">GPS：<b id="gpsState">未取得</b></div>
   </div>
-  <div class="tabs">
-    <button class="tab active" data-tab="input">入力</button>
-    <button class="tab" data-tab="list">履歴</button>
+  <nav>
+    <button class="tab active" data-tab="scan">SCAN</button>
+    <button class="tab" data-tab="list">リスト</button>
     <button class="tab" data-tab="report">日報</button>
-  </div>
+  </nav>
 </header>
 
 <main>
-  <!-- 入力 -->
-  <section id="tab-input" class="grid">
-    <div class="card">
-      <h2>① 伝票データ入力</h2>
 
-      <div class="row two">
+  <!-- SCAN -->
+  <section id="tab-scan" class="card">
+    <h2>① SCAN（連続読み取りで一気に登録）</h2>
+
+    <div class="scanWrap">
+      <div class="scanHint">
+        <div class="dot"></div>
+        <div>
+          <b>ポイント：</b>「SCAN開始」→ 伝票をかざす → 自動でリストに追加（50個でも早い）<br>
+          <span class="mini">※BarcodeDetector対応端末は自動。非対応の場合は手入力にフォールバックします。</span>
+        </div>
+      </div>
+
+      <div class="grid three" style="margin-top:10px;">
         <div>
           <label>配達日</label>
-          <input id="shipDate" type="date">
+          <input id="shipDate" type="date" />
         </div>
         <div>
           <label>配達員名</label>
-          <input id="driver" type="text" placeholder="例：森下 洸">
-        </div>
-      </div>
-
-      <div class="row two" style="margin-top:10px;">
-        <div>
-          <label>伝票番号（追跡番号）</label>
-          <input id="tracking" type="text" inputmode="numeric" placeholder="読み取り or 手入力">
-          <div class="mini" style="margin-top:6px;">※QR/バーコード読み取りは端末対応時のみ自動入力されます。</div>
+          <input id="driver" type="text" placeholder="例：森下 洸" />
         </div>
         <div>
           <label>取引先（任意）</label>
-          <input id="client" type="text" placeholder="例：ヤマト / 佐川 / Amazon / アパレル 等">
+          <input id="client" type="text" placeholder="例：ヤマト / 佐川 / Amazon…" />
         </div>
       </div>
 
-      <div class="row two" style="margin-top:10px;">
+      <div class="grid two" style="margin-top:10px;">
         <div>
-          <label>住所（任意：地図起動に使用）</label>
-          <input id="address" type="text" placeholder="例：鹿児島市〇〇…">
+          <label>住所（任意：ナビで使う）</label>
+          <input id="address" type="text" placeholder="例：鹿児島市〇〇…" />
+          <div class="mini" style="margin-top:6px;">※住所は後から編集もできます（まずは番号だけでもOK）。</div>
         </div>
         <div>
-          <label>荷物数（任意）</label>
-          <input id="pieces" type="number" min="1" step="1" placeholder="例：1">
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <div>
-          <label>メモ（任意）</label>
-          <textarea id="memo" placeholder="置き配、時間指定、注意点など"></textarea>
+          <label>手入力（読み取りできない時）</label>
+          <input id="tracking" type="text" inputmode="numeric" placeholder="伝票番号を入力→追加" />
         </div>
       </div>
 
       <div class="btns" style="margin-top:12px;">
-        <button class="btn-ghost" id="btnScan">📷 カメラで読み取り</button>
-        <button class="btn-primary" id="btnAdd">＋ 登録（未持出）</button>
+        <button class="btn-blue" id="btnGPS">📍 GPS取得</button>
+        <button class="btn-primary" id="btnStartScan">📷 SCAN開始（自動）</button>
+        <button class="btn-ghost" id="btnStopScan" style="display:none;">停止</button>
+        <button class="btn-ghost" id="btnAddManual">＋ 手入力で追加</button>
       </div>
 
-      <div class="cam" id="camBox">
+      <div class="camBox" id="camBox">
         <video id="video" playsinline></video>
       </div>
 
-      <div class="hr"></div>
-      <div class="note">
-        <b>運用メモ：</b><br>
-        ・まず「登録」→ その後に「持出」「完了」「不在」を押す流れが楽です。<br>
-        ・このページは端末内に保存します（オフラインでも動作）。会社共有をする場合は次段階でクラウド連携します。
+      <div class="popLine"></div>
+
+      <div class="note" style="margin-top:10px;">
+        ✅ 登録されたら自動で「未持出」に入ります。出発前に「持出一括」もできます（リストタブ）。
       </div>
     </div>
   </section>
 
-  <!-- 履歴 -->
-  <section id="tab-list" class="grid" style="display:none;">
-    <div class="card">
-      <h2>② 履歴一覧（ステータス更新）</h2>
+  <!-- LIST -->
+  <section id="tab-list" class="card" style="display:none;">
+    <h2>② リスト（配達に出る）</h2>
 
-      <div class="row three">
+    <div class="toolbar">
+      <div class="left">
         <div>
-          <label>日付フィルタ</label>
-          <input id="filterDate" type="date">
+          <label style="margin-bottom:6px;">日付</label>
+          <input id="filterDate" type="date" />
         </div>
         <div>
-          <label>ステータス</label>
+          <label style="margin-bottom:6px;">ステータス</label>
           <select id="filterStatus">
-            <option value="">すべて</option>
             <option value="created">未持出</option>
             <option value="out">持出</option>
             <option value="done">完了</option>
             <option value="absent">不在</option>
             <option value="return">返却/キャンセル</option>
+            <option value="">すべて</option>
           </select>
         </div>
-        <div>
-          <label>検索（伝票番号/住所/取引先）</label>
-          <input id="filterText" type="text" placeholder="検索">
+        <div class="grow" style="min-width:220px;">
+          <label style="margin-bottom:6px;">検索（番号/住所/取引先）</label>
+          <input id="filterText" type="text" placeholder="例：1234 / 鹿児島 / ヤマト" />
         </div>
       </div>
 
-      <div class="hr"></div>
-
-      <div class="list" id="historyList"></div>
-
-      <div class="hr"></div>
       <div class="btns">
-        <button class="btn-ghost" id="btnExportCSVAll">CSV出力（フィルタ結果）</button>
-        <button class="btn-ghost" id="btnExportPDFAll">PDF出力（フィルタ結果）</button>
-        <button class="btn-bad" id="btnClearAll">全データ削除（注意）</button>
+        <button class="btn-primary btn-mini" id="btnBulkOut">🚚 持出一括（未持出→持出）</button>
+        <button class="btn-ghost btn-mini" id="btnNext">▶ 次の未完へ</button>
       </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="list" id="historyList"></div>
+
+    <div class="hr"></div>
+
+    <div class="btns">
+      <button class="btn-ghost" id="btnExportCSV">CSV出力</button>
+      <button class="btn-ghost" id="btnExportPDF">PDF出力</button>
+      <button class="btn-bad" id="btnClearAll">全削除（注意）</button>
     </div>
   </section>
 
-  <!-- 日報 -->
-  <section id="tab-report" class="grid" style="display:none;">
-    <div class="card">
-      <h2>③ 日報（今日/指定日）</h2>
+  <!-- REPORT -->
+  <section id="tab-report" class="card" style="display:none;">
+    <h2>③ 日報（LINE送信用：PDF/CSV）</h2>
 
-      <div class="row two">
-        <div>
-          <label>対象日</label>
-          <input id="reportDate" type="date">
-        </div>
-        <div>
-          <label>配達員名（印字用）</label>
-          <input id="reportDriver" type="text" placeholder="未入力なら入力タブの配達員名を使用">
-        </div>
+    <div class="grid two">
+      <div>
+        <label>対象日</label>
+        <input id="reportDate" type="date" />
       </div>
-
-      <div class="hr"></div>
-
-      <div class="kpi" id="kpi"></div>
-
-      <div class="hr"></div>
-
-      <div class="btns">
-        <button class="btn-primary" id="btnExportCSVReport">CSV出力（日報）</button>
-        <button class="btn-primary" id="btnExportPDFReport">PDF出力（日報）</button>
-      </div>
-
-      <div class="note" style="margin-top:10px;">
-        ※PDFはA4で、LINE送信用にシンプルな表で出ます。
+      <div>
+        <label>配達員名（印字）</label>
+        <input id="reportDriver" type="text" placeholder="未入力ならSCANの配達員名" />
       </div>
     </div>
+
+    <div class="hr"></div>
+
+    <div class="kpis" id="reportKpis"></div>
+
+    <div class="hr"></div>
+
+    <div class="btns">
+      <button class="btn-primary" id="btnReportCSV">CSV出力（日報）</button>
+      <button class="btn-primary" id="btnReportPDF">PDF出力（日報）</button>
+    </div>
+
+    <div class="note" style="margin-top:10px;">
+      ※会社が履歴を見れればOKなら、このPDF/CSVを毎日LINE送信で運用できます。<br>
+      次段階で「会社側の管理画面（全員分の一覧）」に拡張できます。
+    </div>
   </section>
+
 </main>
 
 <script>
-/** =========================
- *  データ構造
- *  shipments: [
- *    {
- *      id, shipDate, driver, tracking, client, address, pieces, memo,
- *      status: created|out|done|absent|return,
- *      history: [{at, action, note}]
- *    }
- *  ]
- * ========================= */
-const STORAGE_KEY = "ofa_shipments_v1";
+/* =========================
+   Storage & helpers
+========================= */
+const STORAGE_KEY = "ofa_delivery_v2";
+let gps = { lat:null, lng:null, at:null };
+
+const pad = n => String(n).padStart(2,"0");
+const today = new Date();
+const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 
 function nowISO(){
   const d = new Date();
-  const pad = n => String(n).padStart(2,"0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
-
 function uid(){
   return "S" + Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
-
-function loadShipments(){
-  try{
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  }catch(e){
-    return [];
-  }
+function load(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }catch{ return []; }
 }
-function saveShipments(list){
+function save(list){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
-
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+}
 function statusLabel(s){
-  return ({
-    created:"未持出",
-    out:"持出",
-    done:"完了",
-    absent:"不在",
-    return:"返却/キャンセル"
-  })[s] || s;
+  return ({created:"未持出", out:"持出", done:"完了", absent:"不在", return:"返却"})[s] || s;
 }
 function statusClass(s){
-  return ({
-    created:"st-created",
-    out:"st-out",
-    done:"st-done",
-    absent:"st-absent",
-    return:"st-return"
-  })[s] || "st-created";
+  return ({created:"st-created", out:"st-out", done:"st-done", absent:"st-absent", return:"st-return"})[s] || "st-created";
 }
 
-/** =========================
- *  タブ
- * ========================= */
-const tabs = document.querySelectorAll(".tab");
-tabs.forEach(t=>{
-  t.addEventListener("click", ()=>{
-    tabs.forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    const name = t.dataset.tab;
+/* =========================
+   Tabs
+========================= */
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");
+    const t = btn.dataset.tab;
     document.querySelectorAll("main section").forEach(sec=>sec.style.display="none");
-    document.getElementById("tab-"+name).style.display="grid";
-    if(name==="list") renderList();
-    if(name==="report") renderReport();
+    document.getElementById("tab-"+t).style.display="block";
+    if(t==="list") renderList();
+    if(t==="report") renderReport();
   });
 });
 
-/** =========================
- *  初期値（日付）
- * ========================= */
-const today = new Date();
-const pad = n => String(n).padStart(2,"0");
-const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-
+/* =========================
+   Init
+========================= */
 document.getElementById("shipDate").value = todayStr;
 document.getElementById("filterDate").value = todayStr;
 document.getElementById("reportDate").value = todayStr;
 
-/** =========================
- *  登録
- * ========================= */
-document.getElementById("btnAdd").addEventListener("click", ()=>{
-  const shipDate = document.getElementById("shipDate").value || todayStr;
-  const driver = (document.getElementById("driver").value || "").trim();
-  const tracking = (document.getElementById("tracking").value || "").trim();
-  const client = (document.getElementById("client").value || "").trim();
-  const address = (document.getElementById("address").value || "").trim();
-  const pieces = parseInt(document.getElementById("pieces").value || "1",10);
-  const memo = (document.getElementById("memo").value || "").trim();
-
-  if(!tracking){
-    alert("伝票番号（追跡番号）を入力してください");
+/* =========================
+   GPS
+========================= */
+const gpsState = document.getElementById("gpsState");
+document.getElementById("btnGPS").addEventListener("click", async ()=>{
+  if(!navigator.geolocation){
+    alert("この端末はGPS取得に非対応です。");
     return;
   }
+  gpsState.textContent = "取得中…";
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      gps.lat = pos.coords.latitude;
+      gps.lng = pos.coords.longitude;
+      gps.at = nowISO();
+      gpsState.textContent = "OK";
+      alert(`GPS取得しました\n${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}`);
+    },
+    ()=>{
+      gpsState.textContent = "失敗";
+      alert("GPS取得に失敗しました。位置情報の許可を確認してください。");
+    },
+    { enableHighAccuracy:true, timeout:12000 }
+  );
+});
 
-  const list = loadShipments();
-  // 同じ番号があれば警告（重複防止）
-  const dup = list.find(x => x.tracking === tracking && x.shipDate === shipDate);
+/* =========================
+   Add shipment (scan/manual)
+========================= */
+function addShipment(tracking){
+  tracking = (tracking||"").trim();
+  if(!tracking){ alert("伝票番号が空です"); return; }
+
+  const shipDate = document.getElementById("shipDate").value || todayStr;
+  const driver = (document.getElementById("driver").value || "").trim();
+  const client = (document.getElementById("client").value || "").trim();
+  const address = (document.getElementById("address").value || "").trim();
+
+  const list = load();
+
+  // 重複は「今日の同一番号」はブロック（連続スキャンで事故りやすいので）
+  const dup = list.find(x => x.shipDate===shipDate && x.tracking===tracking);
   if(dup){
-    if(!confirm("同じ伝票番号が既にあります。重複登録しますか？")) return;
+    // 軽いバイブ感の代替（iOSは制限あり）→アラート最小
+    console.log("duplicate:", tracking);
+    return;
   }
 
   const item = {
     id: uid(),
-    shipDate,
-    driver,
+    shipDate, driver, client,
     tracking,
-    client,
     address,
-    pieces: Number.isFinite(pieces) && pieces>0 ? pieces : 1,
-    memo,
     status: "created",
-    history: [{ at: nowISO(), action: "登録", note: "" }]
+    createdAt: nowISO(),
+    history: [{at: nowISO(), action:"登録"}]
   };
   list.unshift(item);
-  saveShipments(list);
+  save(list);
+}
 
-  // 入力クリア（追跡番号だけ空に）
+/* manual add */
+document.getElementById("btnAddManual").addEventListener("click", ()=>{
+  const t = document.getElementById("tracking").value;
+  addShipment(t);
   document.getElementById("tracking").value = "";
-  document.getElementById("memo").value = "";
-  document.getElementById("pieces").value = "";
-
-  alert("登録しました（未持出）");
+  // 即リストへ行く導線（50個想定）
+  flash("追加しました");
 });
 
-/** =========================
- *  履歴一覧
- * ========================= */
+/* =========================
+   SCAN (BarcodeDetector)
+========================= */
+let stream = null;
+let scanning = false;
+let detector = null;
+
+const camBox = document.getElementById("camBox");
+const video = document.getElementById("video");
+const btnStartScan = document.getElementById("btnStartScan");
+const btnStopScan = document.getElementById("btnStopScan");
+
+btnStartScan.addEventListener("click", async ()=>{
+  // Check support
+  if(!navigator.mediaDevices?.getUserMedia){
+    alert("カメラ非対応です。手入力で運用してください。");
+    return;
+  }
+  if(!("BarcodeDetector" in window)){
+    alert("この端末は自動読み取りに非対応です。手入力で運用してください。");
+    return;
+  }
+
+  const formats = ["qr_code","ean_13","ean_8","code_128","code_39","itf","upc_a","upc_e","data_matrix","pdf417"];
+  detector = new BarcodeDetector({ formats });
+
+  camBox.style.display = "block";
+  btnStartScan.style.display = "none";
+  btnStopScan.style.display = "inline-block";
+
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"environment" }, audio:false });
+    video.srcObject = stream;
+    await video.play();
+  }catch(e){
+    stopScan();
+    alert("カメラ起動に失敗しました。HTTPS/権限を確認してください。");
+    return;
+  }
+
+  scanning = true;
+  loopScan();
+  flash("SCAN中：伝票をかざして下さい");
+});
+
+btnStopScan.addEventListener("click", ()=> stopScan());
+
+function stopScan(){
+  scanning = false;
+  btnStartScan.style.display = "inline-block";
+  btnStopScan.style.display = "none";
+  camBox.style.display = "none";
+  try{
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+  }catch{}
+  stream = null;
+}
+
+let lastValue = "";
+let lastAt = 0;
+
+async function loopScan(){
+  if(!scanning) return;
+  try{
+    const codes = await detector.detect(video);
+    if(codes && codes.length){
+      const val = (codes[0].rawValue || "").trim();
+      const now = Date.now();
+      // 同一連続読み取りを抑制（0.9秒）
+      if(val && (val !== lastValue || (now-lastAt) > 900)){
+        lastValue = val; lastAt = now;
+        addShipment(val);
+        flash(`読み取り：${val}（追加）`);
+      }
+    }
+  }catch(e){
+    // ignore
+  }
+  requestAnimationFrame(loopScan);
+}
+
+/* =========================
+   List / filters / actions
+========================= */
 ["filterDate","filterStatus","filterText"].forEach(id=>{
   document.getElementById(id).addEventListener("input", renderList);
 });
@@ -488,115 +591,199 @@ document.getElementById("btnAdd").addEventListener("click", ()=>{
 function applyFilters(list){
   const d = document.getElementById("filterDate").value;
   const st = document.getElementById("filterStatus").value;
-  const q = (document.getElementById("filterText").value || "").trim().toLowerCase();
-
+  const q = (document.getElementById("filterText").value||"").trim().toLowerCase();
   return list.filter(x=>{
-    const okD = d ? x.shipDate === d : true;
-    const okS = st ? x.status === st : true;
-    const hay = `${x.tracking} ${x.address} ${x.client} ${x.memo}`.toLowerCase();
+    const okD = d ? x.shipDate===d : true;
+    const okS = st ? x.status===st : true;
+    const hay = `${x.tracking} ${x.address||""} ${x.client||""}`.toLowerCase();
     const okQ = q ? hay.includes(q) : true;
     return okD && okS && okQ;
   });
 }
 
-function renderList(){
-  const box = document.getElementById("historyList");
-  const list = applyFilters(loadShipments());
+function computeKpis(listAll, dateStr){
+  const list = listAll.filter(x=>x.shipDate===dateStr);
+  const c = (st)=> list.filter(x=>x.status===st).length;
+  return {
+    total:list.length,
+    created:c("created"),
+    out:c("out"),
+    done:c("done"),
+    absent:c("absent"),
+    ret:c("return"),
+  };
+}
 
-  if(list.length===0){
-    box.innerHTML = `<div class="note">該当データがありません。</div>`;
+function renderKpis(){
+  const dateStr = document.getElementById("filterDate").value || todayStr;
+  const all = load();
+  const k = computeKpis(all, dateStr);
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi"><small>合計</small><b>${k.total}</b></div>
+    <div class="kpi"><small>未持出</small><b>${k.created}</b></div>
+    <div class="kpi"><small>持出</small><b>${k.out}</b></div>
+    <div class="kpi"><small>完了</small><b>${k.done}</b></div>
+    <div class="kpi"><small>不在</small><b>${k.absent}</b></div>
+  `;
+}
+
+function renderList(){
+  renderKpis();
+  const box = document.getElementById("historyList");
+  const all = load();
+  const list = applyFilters(all);
+
+  if(!list.length){
+    box.innerHTML = `<div class="note">該当データがありません。SCANで読み取って追加してください。</div>`;
     return;
   }
 
   box.innerHTML = list.map(x=>{
-    const last = x.history?.[x.history.length-1];
-    const lastLine = last ? `${last.at} / ${last.action}` : "";
-    const mapLink = x.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.address)}` : "";
+    const mapBtn = x.address ? `<button class="btn-blue btn-mini" onclick="navTo('${x.id}')">🗺 ナビ</button>` : `<button class="btn-ghost btn-mini" onclick="editAddress('${x.id}')">住所入力</button>`;
     return `
-      <div class="item">
-        <div class="item-top">
+      <div class="item" id="row-${x.id}">
+        <div class="itemTop">
           <div>
             <b>${escapeHtml(x.tracking)}</b>
-            <div class="mini">${escapeHtml(x.client || "（取引先未入力）")} / ${escapeHtml(x.shipDate)}</div>
+            <div class="mini">${escapeHtml(x.client||"（取引先未入力）")} / ${escapeHtml(x.shipDate)}</div>
           </div>
-          <div class="status ${statusClass(x.status)}">${statusLabel(x.status)}</div>
+          <div class="tag ${statusClass(x.status)}">${statusLabel(x.status)}</div>
         </div>
         <div class="meta">
-          住所：${escapeHtml(x.address || "（未入力）")}<br>
-          個数：${escapeHtml(String(x.pieces || 1))} ／ 配達員：${escapeHtml(x.driver || "（未入力）")}<br>
-          最終：${escapeHtml(lastLine)}
+          住所：${escapeHtml(x.address||"（未入力）")}<br>
+          配達員：${escapeHtml(x.driver||"（未入力）")} / 登録：${escapeHtml(x.createdAt||"")}
         </div>
 
-        <div class="split">
-          <div class="btns">
-            <button class="btn-ok" onclick="updateStatus('${x.id}','out','持出')">持出</button>
-            <button class="btn-ok" onclick="updateStatus('${x.id}','done','完了')">完了</button>
-            <button class="btn-warn" onclick="updateStatus('${x.id}','absent','不在')">不在</button>
-            <button class="btn-bad" onclick="updateStatus('${x.id}','return','返却/キャンセル')">返却</button>
-          </div>
-          <div class="btns">
-            ${mapLink ? `<button class="btn-ghost" onclick="openMap('${mapLink}')">🗺 地図</button>` : `<button class="btn-ghost" disabled>🗺 地図</button>`}
-            <button class="btn-ghost" onclick="showDetail('${x.id}')">詳細</button>
-            <button class="btn-bad" onclick="deleteOne('${x.id}')">削除</button>
-          </div>
+        <div class="actions">
+          ${mapBtn}
+          <button class="btn-ok btn-mini" onclick="setStatus('${x.id}','out','持出')">持出</button>
+          <button class="btn-ok btn-mini" onclick="setStatus('${x.id}','done','完了', true)">完了</button>
+          <button class="btn-warn btn-mini" onclick="setStatus('${x.id}','absent','不在', true)">不在</button>
+          <button class="btn-bad btn-mini" onclick="setStatus('${x.id}','return','返却')">返却</button>
+          <button class="btn-ghost btn-mini" onclick="showDetail('${x.id}')">詳細</button>
+          <button class="btn-bad btn-mini" onclick="delOne('${x.id}')">削除</button>
         </div>
       </div>
     `;
   }).join("");
 }
 
-function openMap(url){
-  window.open(url, "_blank");
-}
-
-function updateStatus(id, status, label){
-  const list = loadShipments();
-  const item = list.find(x=>x.id===id);
-  if(!item) return;
-
-  item.status = status;
-  item.history = item.history || [];
-  item.history.push({ at: nowISO(), action: label, note: "" });
-  saveShipments(list);
+window.setStatus = function(id, st, label, autoNext=false){
+  const list = load();
+  const it = list.find(x=>x.id===id);
+  if(!it) return;
+  it.status = st;
+  it.history = it.history || [];
+  it.history.push({at: nowISO(), action: label});
+  save(list);
   renderList();
-}
+  flash(`${label}：${it.tracking}`);
+  if(autoNext) jumpNextUnfinished();
+};
 
-function deleteOne(id){
-  if(!confirm("このデータを削除しますか？")) return;
-  const list = loadShipments().filter(x=>x.id!==id);
-  saveShipments(list);
+window.delOne = function(id){
+  if(!confirm("削除しますか？")) return;
+  const list = load().filter(x=>x.id!==id);
+  save(list);
   renderList();
-}
+};
 
-function showDetail(id){
-  const list = loadShipments();
-  const item = list.find(x=>x.id===id);
-  if(!item) return;
-  const h = (item.history||[]).map(r=>`・${r.at}：${r.action}`).join("\n");
+window.showDetail = function(id){
+  const it = load().find(x=>x.id===id);
+  if(!it) return;
+  const h = (it.history||[]).map(r=>`・${r.at}：${r.action}`).join("\n");
   alert(
 `【詳細】
-伝票番号：${item.tracking}
-日付：${item.shipDate}
-取引先：${item.client||""}
-住所：${item.address||""}
-個数：${item.pieces||1}
-配達員：${item.driver||""}
-メモ：${item.memo||""}
+伝票：${it.tracking}
+日付：${it.shipDate}
+取引先：${it.client||""}
+住所：${it.address||""}
+配達員：${it.driver||""}
+状態：${statusLabel(it.status)}
 
 【履歴】
 ${h}`
   );
+};
+
+window.editAddress = function(id){
+  const list = load();
+  const it = list.find(x=>x.id===id);
+  if(!it) return;
+  const v = prompt("住所を入力（Googleナビに使用）", it.address||"");
+  if(v===null) return;
+  it.address = v.trim();
+  it.history = it.history || [];
+  it.history.push({at: nowISO(), action:"住所更新"});
+  save(list);
+  renderList();
+};
+
+window.navTo = function(id){
+  const it = load().find(x=>x.id===id);
+  if(!it || !it.address){
+    alert("住所が未入力です。");
+    return;
+  }
+
+  // 現在地が取れていればorigin付でより確実
+  const dest = encodeURIComponent(it.address);
+  const origin = (gps.lat && gps.lng) ? `${gps.lat},${gps.lng}` : "";
+  const url = origin
+    ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${dest}&travelmode=driving`
+    : `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+
+  // 「出発」扱いにしたい場合は持出へ寄せる（好みで）
+  if(it.status==="created"){
+    if(confirm("ナビ開始と同時に「持出」にしますか？")){
+      window.setStatus(it.id, "out", "持出");
+    }
+  }
+  window.open(url, "_blank");
+};
+
+/* Next unfinished (created/out) */
+document.getElementById("btnNext").addEventListener("click", jumpNextUnfinished);
+
+function jumpNextUnfinished(){
+  const dateStr = document.getElementById("filterDate").value || todayStr;
+  const st = document.getElementById("filterStatus").value;
+  // 未完優先：created → out
+  const all = load().filter(x=>x.shipDate===dateStr);
+  const target = all.find(x=>x.status==="created") || all.find(x=>x.status==="out");
+  if(!target){
+    flash("未完がありません（完了済み）");
+    return;
+  }
+  // listタブへ
+  document.querySelector('[data-tab="list"]').click();
+  setTimeout(()=>{
+    const el = document.getElementById("row-"+target.id);
+    if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
+  }, 50);
 }
 
-function escapeHtml(s){
-  return String(s||"").replace(/[&<>"']/g, m=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[m]));
-}
+/* Bulk out */
+document.getElementById("btnBulkOut").addEventListener("click", ()=>{
+  const dateStr = document.getElementById("filterDate").value || todayStr;
+  const list = load();
+  let cnt = 0;
+  list.forEach(it=>{
+    if(it.shipDate===dateStr && it.status==="created"){
+      it.status="out";
+      it.history = it.history || [];
+      it.history.push({at: nowISO(), action:"持出（自動一括）"});
+      cnt++;
+    }
+  });
+  save(list);
+  renderList();
+  flash(`持出一括：${cnt}件`);
+});
 
-/** =========================
- *  エクスポート（CSV）
- * ========================= */
+/* =========================
+   Export CSV / PDF
+========================= */
 function toCSV(rows){
   const esc = v => `"${String(v??"").replaceAll('"','""')}"`;
   return rows.map(r=>r.map(esc).join(",")).join("\n");
@@ -612,7 +799,7 @@ function downloadFile(content, filename, mime){
   setTimeout(()=>URL.revokeObjectURL(url), 500);
 }
 
-function rowsFromList(list){
+function rowsForExport(list){
   return list.map(x=>{
     const last = x.history?.[x.history.length-1];
     return [
@@ -621,24 +808,20 @@ function rowsFromList(list){
       x.tracking,
       x.client,
       x.address,
-      x.pieces,
       statusLabel(x.status),
       last?.at || "",
-      (x.memo||"")
+      (x.history||[]).map(h=>`${h.at} ${h.action}`).join(" | ")
     ];
   });
 }
 
-document.getElementById("btnExportCSVAll").addEventListener("click", ()=>{
-  const list = applyFilters(loadShipments());
-  const header = ["日付","配達員","伝票番号","取引先","住所","個数","ステータス","最終更新","メモ"];
-  const csv = toCSV([header, ...rowsFromList(list)]);
+document.getElementById("btnExportCSV").addEventListener("click", ()=>{
+  const list = applyFilters(load());
+  const header = ["日付","配達員","伝票番号","取引先","住所","ステータス","最終更新","履歴"];
+  const csv = toCSV([header, ...rowsForExport(list)]);
   downloadFile(csv, `OFA_配達履歴_${todayStr}.csv`, "text/csv;charset=utf-8");
 });
 
-/** =========================
- *  PDF出力（一覧/日報）
- * ========================= */
 function exportPDF(title, list, filename, metaLines=[]){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
@@ -646,204 +829,127 @@ function exportPDF(title, list, filename, metaLines=[]){
   doc.text(title, 14, 14);
 
   doc.setFontSize(10);
-  let y = 20;
-  metaLines.forEach(line=>{
-    doc.text(line, 14, y);
-    y += 5;
-  });
+  let y=20;
+  metaLines.forEach(line=>{ doc.text(line, 14, y); y+=5; });
 
-  const head = [["日付","配達員","伝票番号","取引先","個数","ステータス","最終更新"]];
+  const head = [["日付","伝票番号","取引先","住所","状態","最終更新"]];
   const body = list.map(x=>{
     const last = x.history?.[x.history.length-1];
-    return [
-      x.shipDate,
-      x.driver || "",
-      x.tracking,
-      x.client || "",
-      String(x.pieces || 1),
-      statusLabel(x.status),
-      (last?.at || "")
-    ];
+    return [x.shipDate, x.tracking, x.client||"", x.address||"", statusLabel(x.status), last?.at||""];
   });
 
   doc.autoTable({
-    startY: y + 2,
-    head,
-    body,
-    styles: { fontSize: 9, cellPadding: 2 },
-    headStyles: { fillColor: [20, 26, 34] }, // dark-ish
-    theme: "grid"
+    startY: y+2,
+    head, body,
+    styles:{fontSize:9, cellPadding:2},
+    theme:"grid"
   });
 
-  // フッター
   const pageCount = doc.getNumberOfPages();
   for(let i=1;i<=pageCount;i++){
     doc.setPage(i);
     doc.setFontSize(9);
     doc.text(`OFA GROUP / ${todayStr} / Page ${i}/${pageCount}`, 14, 292);
   }
-
   doc.save(filename);
 }
 
-document.getElementById("btnExportPDFAll").addEventListener("click", ()=>{
-  const list = applyFilters(loadShipments());
-  exportPDF("OFA 配達履歴（フィルタ結果）", list, `OFA_配達履歴_${todayStr}.pdf`, [
-    `出力日時：${nowISO()}`
+document.getElementById("btnExportPDF").addEventListener("click", ()=>{
+  const list = applyFilters(load());
+  exportPDF("OFA 配達履歴", list, `OFA_配達履歴_${todayStr}.pdf`, [
+    `出力：${nowISO()}`,
+    `GPS：${gps.lat&&gps.lng ? gps.lat.toFixed(6)+","+gps.lng.toFixed(6) : "未取得"}`
   ]);
 });
 
-/** =========================
- *  全削除
- * ========================= */
-document.getElementById("btnClearAll").addEventListener("click", ()=>{
-  if(!confirm("全データを削除します。本当に実行しますか？")) return;
-  if(!confirm("最終確認：復元できません。削除しますか？")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  renderList();
-  alert("削除しました");
-});
-
-/** =========================
- *  日報
- * ========================= */
-function listByDate(dateStr){
-  return loadShipments().filter(x=>x.shipDate===dateStr);
-}
-function renderReport(){
-  const dateStr = document.getElementById("reportDate").value || todayStr;
-  const list = listByDate(dateStr);
-
-  // driver name
-  const driver = (document.getElementById("reportDriver").value || "").trim()
-    || (document.getElementById("driver").value || "").trim();
-
-  const total = list.reduce((a,x)=>a+(x.pieces||1),0);
-  const cCreated = list.filter(x=>x.status==="created").reduce((a,x)=>a+(x.pieces||1),0);
-  const cOut = list.filter(x=>x.status==="out").reduce((a,x)=>a+(x.pieces||1),0);
-  const cDone = list.filter(x=>x.status==="done").reduce((a,x)=>a+(x.pieces||1),0);
-  const cAbsent = list.filter(x=>x.status==="absent").reduce((a,x)=>a+(x.pieces||1),0);
-  const cReturn = list.filter(x=>x.status==="return").reduce((a,x)=>a+(x.pieces||1),0);
-
-  document.getElementById("kpi").innerHTML = `
-    <div class="box"><div class="mini">対象日</div><b>${escapeHtml(dateStr)}</b></div>
-    <div class="box"><div class="mini">配達員</div><b>${escapeHtml(driver||"（未入力）")}</b></div>
-    <div class="box"><div class="mini">合計個数</div><b>${total}</b></div>
-    <div class="box"><div class="mini">完了</div><b>${cDone}</b></div>
-    <div class="box"><div class="mini">不在</div><b>${cAbsent}</b></div>
-    <div class="box"><div class="mini">未持出</div><b>${cCreated}</b></div>
-    <div class="box"><div class="mini">持出</div><b>${cOut}</b></div>
-    <div class="box"><div class="mini">返却</div><b>${cReturn}</b></div>
-  `;
-}
-
+/* =========================
+   Report
+========================= */
 document.getElementById("reportDate").addEventListener("change", renderReport);
 document.getElementById("reportDriver").addEventListener("input", renderReport);
 
-document.getElementById("btnExportCSVReport").addEventListener("click", ()=>{
+function byDate(dateStr){
+  return load().filter(x=>x.shipDate===dateStr);
+}
+function renderReport(){
   const dateStr = document.getElementById("reportDate").value || todayStr;
-  const list = listByDate(dateStr);
+  const list = byDate(dateStr);
+  const driver = (document.getElementById("reportDriver").value||"").trim() || (document.getElementById("driver").value||"").trim();
 
-  const header = ["日付","配達員","伝票番号","取引先","住所","個数","ステータス","最終更新","メモ"];
-  const csv = toCSV([header, ...rowsFromList(list)]);
+  const c = (st)=> list.filter(x=>x.status===st).length;
+  const k = { total:list.length, created:c("created"), out:c("out"), done:c("done"), absent:c("absent"), ret:c("return") };
+
+  document.getElementById("reportKpis").innerHTML = `
+    <div class="kpi"><small>対象日</small><b>${escapeHtml(dateStr)}</b></div>
+    <div class="kpi"><small>配達員</small><b>${escapeHtml(driver||"未入力")}</b></div>
+    <div class="kpi"><small>合計</small><b>${k.total}</b></div>
+    <div class="kpi"><small>完了</small><b>${k.done}</b></div>
+    <div class="kpi"><small>不在</small><b>${k.absent}</b></div>
+    <div class="kpi"><small>未持出</small><b>${k.created}</b></div>
+  `;
+}
+
+document.getElementById("btnReportCSV").addEventListener("click", ()=>{
+  const dateStr = document.getElementById("reportDate").value || todayStr;
+  const list = byDate(dateStr);
+  const header = ["日付","配達員","伝票番号","取引先","住所","ステータス","最終更新","履歴"];
+  const csv = toCSV([header, ...rowsForExport(list)]);
   downloadFile(csv, `OFA_日報_${dateStr}.csv`, "text/csv;charset=utf-8");
 });
-
-document.getElementById("btnExportPDFReport").addEventListener("click", ()=>{
+document.getElementById("btnReportPDF").addEventListener("click", ()=>{
   const dateStr = document.getElementById("reportDate").value || todayStr;
-  const list = listByDate(dateStr);
-  const driver = (document.getElementById("reportDriver").value || "").trim()
-    || (document.getElementById("driver").value || "").trim();
-
+  const list = byDate(dateStr);
+  const driver = (document.getElementById("reportDriver").value||"").trim() || (document.getElementById("driver").value||"").trim();
   exportPDF("OFA 日報（配達）", list, `OFA_日報_${dateStr}.pdf`, [
     `対象日：${dateStr}`,
-    `配達員：${driver || "（未入力）"}`,
-    `出力日時：${nowISO()}`
+    `配達員：${driver||"未入力"}`,
+    `出力：${nowISO()}`
   ]);
 });
 
-/** =========================
- *  カメラ読み取り
- *  - BarcodeDetector API が使える端末は簡単にスキャン可能
- *  - 非対応端末は手入力運用（ここが一番安定）
- * ========================= */
-let stream = null;
-let scanning = false;
-
-document.getElementById("btnScan").addEventListener("click", async ()=>{
-  const camBox = document.getElementById("camBox");
-  const video = document.getElementById("video");
-
-  if(scanning){
-    stopCamera();
-    camBox.style.display = "none";
-    scanning = false;
-    return;
-  }
-
-  if(!("mediaDevices" in navigator) || !navigator.mediaDevices.getUserMedia){
-    alert("この端末ではカメラ機能が利用できません。手入力で運用してください。");
-    return;
-  }
-
-  camBox.style.display = "block";
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
-    video.srcObject = stream;
-    await video.play();
-  }catch(e){
-    alert("カメラ起動に失敗しました。HTTPSか、権限設定を確認してください。");
-    camBox.style.display = "none";
-    return;
-  }
-
-  // BarcodeDetector（対応端末のみ）
-  if(!("BarcodeDetector" in window)){
-    alert("この端末は自動読み取りに非対応です。手入力で運用してください。");
-    return;
-  }
-
-  const formats = ["qr_code","ean_13","ean_8","code_128","code_39","itf","upc_a","upc_e","data_matrix","pdf417"];
-  const detector = new BarcodeDetector({ formats });
-  scanning = true;
-
-  const tick = async ()=>{
-    if(!scanning) return;
-    try{
-      const barcodes = await detector.detect(video);
-      if(barcodes && barcodes.length){
-        // 一番最初の値を採用
-        const val = barcodes[0].rawValue || "";
-        if(val){
-          document.getElementById("tracking").value = val;
-          alert("読み取り完了： " + val);
-          stopCamera();
-          camBox.style.display = "none";
-          scanning = false;
-          return;
-        }
-      }
-    }catch(e){
-      // ignore
-    }
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
+/* =========================
+   Clear
+========================= */
+document.getElementById("btnClearAll").addEventListener("click", ()=>{
+  if(!confirm("全データ削除します。復元できません。")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  flash("削除しました");
+  renderList();
+  renderReport();
 });
 
-function stopCamera(){
-  try{
-    if(stream){
-      stream.getTracks().forEach(t=>t.stop());
-      stream = null;
-    }
-  }catch(e){}
+/* =========================
+   Toast (light flash)
+========================= */
+let toastTimer = null;
+function flash(msg){
+  clearTimeout(toastTimer);
+  let el = document.getElementById("toast");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "toast";
+    el.style.position="fixed";
+    el.style.left="50%";
+    el.style.bottom="22px";
+    el.style.transform="translateX(-50%)";
+    el.style.background="rgba(17,24,39,.92)";
+    el.style.color="#fff";
+    el.style.padding="10px 14px";
+    el.style.borderRadius="999px";
+    el.style.fontWeight="900";
+    el.style.fontSize="12px";
+    el.style.boxShadow="0 12px 28px rgba(0,0,0,.18)";
+    el.style.zIndex="9999";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity="1";
+  toastTimer = setTimeout(()=>{ el.style.opacity="0"; }, 1200);
 }
 
-// 初回表示
+/* init render */
 renderList();
 renderReport();
 </script>
-
 </body>
 </html>
