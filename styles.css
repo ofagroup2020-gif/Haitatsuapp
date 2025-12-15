@@ -1,92 +1,156 @@
-* {
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif;
+:root{
+  --bg:#0b1020;
+  --card:#111a33;
+  --card2:#0f1730;
+  --txt:#f4f6ff;
+  --muted:#a9b4e6;
+
+  --red:#ff2d55;
+  --yellow:#ffd60a;
+  --blue:#1f7aff;
+  --green:#22c55e;
+
+  --radius:18px;
+  --shadow: 0 12px 30px rgba(0,0,0,.35);
 }
 
-body {
-  margin: 0;
-  background: #ffffff;
-  color: #111;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+  background:
+    radial-gradient(1000px 600px at 10% 0%, rgba(31,122,255,.25), transparent 55%),
+    radial-gradient(900px 600px at 100% 20%, rgba(255,45,85,.18), transparent 55%),
+    radial-gradient(900px 600px at 60% 110%, rgba(255,214,10,.16), transparent 55%),
+    var(--bg);
+  color:var(--txt);
 }
 
-.hidden {
-  display: none;
+a{color:inherit;text-decoration:none}
+h1,h2,h3{margin:.2rem 0}
+small{color:var(--muted)}
+
+.container{max-width:980px;margin:0 auto;padding:16px}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  position:sticky;top:0;z-index:20;padding:12px 0;
+  backdrop-filter: blur(10px);
+}
+.brand{
+  display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.04em;
+}
+.badge{
+  padding:6px 10px;border-radius:999px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);font-size:12px;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-  background: linear-gradient(90deg, #facc15, #ffffff);
-  font-weight: bold;
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:14px;
 }
 
-.logo {
-  font-size: 20px;
+.cardTitle{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:8px;
+}
+.cardTitle strong{font-size:16px}
+.kpis{display:flex;gap:8px;flex-wrap:wrap}
+.kpi{
+  padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  font-weight:800;font-size:12px;
+}
+.kpi .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.dot.red{background:var(--red)} .dot.yellow{background:var(--yellow)}
+.dot.blue{background:var(--blue)} .dot.green{background:var(--green)}
+
+.tabs{
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.tabBtn{
+  flex:1;
+  min-width:120px;
+  padding:12px 12px;border-radius:14px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  font-weight:900;
+  text-align:center;
+}
+.tabBtn.active{outline:2px solid rgba(255,214,10,.7); background:rgba(255,214,10,.12)}
+.panel{display:none}
+.panel.active{display:block}
+
+.btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.btn{
+  padding:12px 14px;border-radius:14px;border:none;
+  font-weight:900;cursor:pointer;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--txt);
+}
+.btn.primary{background:linear-gradient(180deg, rgba(31,122,255,.95), rgba(31,122,255,.65))}
+.btn.danger{background:linear-gradient(180deg, rgba(255,45,85,.95), rgba(255,45,85,.65))}
+.btn.yellow{background:linear-gradient(180deg, rgba(255,214,10,.95), rgba(255,214,10,.60)); color:#111}
+.btn.green{background:linear-gradient(180deg, rgba(34,197,94,.95), rgba(34,197,94,.60)); color:#061}
+.btn.small{padding:10px 12px;border-radius:12px;font-size:13px}
+
+.field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+label{font-size:12px;color:var(--muted);font-weight:800}
+input,select,textarea{
+  padding:12px 12px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(10,15,30,.6);
+  color:var(--txt);
+  outline:none;
+}
+textarea{min-height:80px;resize:vertical}
+
+.list{
+  display:flex;flex-direction:column;gap:10px;margin-top:10px;
+}
+.item{
+  padding:12px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.05);
+}
+.itemHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.itemHead strong{font-size:14px}
+.itemMeta{font-size:12px;color:var(--muted);margin-top:6px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pill{
+  padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+}
+.pill.red{border-color:rgba(255,45,85,.6)}
+.pill.yellow{border-color:rgba(255,214,10,.6)}
+.pill.blue{border-color:rgba(31,122,255,.6)}
+.pill.green{border-color:rgba(34,197,94,.6)}
+
+.twoCol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.twoCol{grid-template-columns:1fr}}
+
+.mapWrap{
+  height:420px;border-radius:16px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
 }
 
-.status span {
-  margin-left: 10px;
+.note{
+  padding:10px 12px;border-radius:14px;
+  background:rgba(255,214,10,.10);
+  border:1px solid rgba(255,214,10,.30);
+  color:#fff;
 }
 
-.ng {
-  color: red;
-}
-
-nav {
-  display: flex;
-  justify-content: space-around;
-  padding: 8px;
-  border-top: 1px solid #ccc;
-}
-
-nav button {
-  flex: 1;
-  margin: 0 4px;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  background: #facc15;
-  font-weight: bold;
-}
-
-.view {
-  padding: 10px;
-}
-
-video {
-  width: 100%;
-  border-radius: 12px;
-  background: black;
-}
-
-input, textarea {
-  width: 100%;
-  margin: 6px 0;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  font-weight: bold;
-}
-
-#listArea li {
-  list-style: none;
-  padding: 10px;
-  border: 1px solid #ddd;
-  margin-bottom: 8px;
-  border-radius: 12px;
-}
-
-#mapArea {
-  width: 100%;
-  height: 70vh;
-  border-radius: 12px;
+hr.sep{
+  border:none;height:1px;background:rgba(255,255,255,.12);margin:12px 0;
 }
