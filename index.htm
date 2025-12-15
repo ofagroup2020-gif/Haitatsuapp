@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>OFA Delivery</title>
-<link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OFA Delivery</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+
 <div class="container">
 
+  <!-- ===== TOP BAR ===== -->
   <div class="topbar">
     <div class="brand">
-      <div style="width:38px;height:38px;border-radius:14px;background:linear-gradient(180deg,rgba(255,214,10,.95),rgba(255,45,85,.55));display:grid;place-items:center;font-weight:900;color:#111;">OFA</div>
+      <div style="
+        width:38px;
+        height:38px;
+        border-radius:14px;
+        background:linear-gradient(180deg,rgba(255,214,10,.95),rgba(255,45,85,.55));
+        display:grid;
+        place-items:center;
+        font-weight:900;
+        color:#111;
+      ">OFA</div>
       <div>
         <div style="font-size:14px;font-weight:900;">OFA DELIVERY</div>
         <small>ログインして開始</small>
@@ -20,6 +31,7 @@
     <span class="badge">PWA / Cloud DB</span>
   </div>
 
+  <!-- ===== LOGIN CARD ===== -->
   <div class="card">
     <div class="cardTitle">
       <strong>ログイン</strong>
@@ -39,34 +51,57 @@
 
     <div class="btnRow">
       <button class="btn primary" id="btnLogin">ログイン</button>
-      <button class="btn yellow" id="btnSignup">新規作成（管理者が作る運用でもOK）</button>
+      <button class="btn yellow" id="btnSignup">
+        新規作成（管理者作成運用でもOK）
+      </button>
     </div>
 
     <hr class="sep" />
+
     <div class="btnRow">
       <a class="btn green" href="driver.html">配達員アプリへ</a>
       <a class="btn danger" href="admin.html">管理画面へ</a>
     </div>
 
     <p class="note" style="margin-top:12px;">
-      ※最初に <b>Firebase設定</b> と <b>Google Maps APIキー</b> を app.js に貼ってください。
+      ※最初に <b>Firebase設定</b> を <code>app.js</code> に貼ってください。
     </p>
   </div>
+
 </div>
 
+<!-- ===== Firebase & App Logic ===== -->
 <script type="module" src="app.js"></script>
-<script type="module">
-  import { authLogin, authSignup } from './app.js';
-  const $ = (id)=>document.getElementById(id);
 
-  $('btnLogin').onclick = async ()=>{
-    await authLogin($('email').value.trim(), $('pass').value);
-    alert('ログインOK');
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+
+  // ログイン
+  $('btnLogin').onclick = async () => {
+    try {
+      await window.login(
+        $('email').value.trim(),
+        $('pass').value
+      );
+      alert('ログインOK');
+    } catch (e) {
+      alert(e.message);
+    }
   };
-  $('btnSignup').onclick = async ()=>{
-    await authSignup($('email').value.trim(), $('pass').value);
-    alert('作成OK（ログイン済）');
+
+  // 新規登録
+  $('btnSignup').onclick = async () => {
+    try {
+      await window.register(
+        $('email').value.trim(),
+        $('pass').value
+      );
+      alert('作成OK（ログイン済）');
+    } catch (e) {
+      alert(e.message);
+    }
   };
 </script>
+
 </body>
 </html>
