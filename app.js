@@ -3,8 +3,8 @@
 // Auth / Firestore / Storage
 // ===============================================
 
-// Firebase SDK
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+// Firebase SDK (CDN / ES Modules)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 
 import {
   getAuth,
@@ -12,7 +12,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 import {
   getFirestore,
@@ -20,40 +20,45 @@ import {
   addDoc,
   getDocs,
   serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 import {
   getStorage,
   ref,
   uploadBytes,
   getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
 
 
 // ===============================================
-// Firebase 設定（←あなたの実データ）
+// Firebase 設定（←あなたの実データに置換）
+// ※ Firebaseコンソールの Webアプリ設定の値をそのまま入れてOK
+// ※ storageBucket は「xxxx.firebasestorage.app」になってるはず
 // ===============================================
 const firebaseConfig = {
-  apiKey: "AIzaSyBv7MvCNx5ifQVG6GBeBjWNluvG-0XXXX",
+  apiKey: "YOUR_API_KEY",
   authDomain: "haitatsu-app-27d69.firebaseapp.com",
   projectId: "haitatsu-app-27d69",
-  storageBucket: "haitatsu-app-27d69.appspot.com",
+  storageBucket: "haitatsu-app-27d69.firebasestorage.app",
   messagingSenderId: "1074595379120",
-  appId: "1:1074595379120:web:6b7cd4d8b4b79dXXXX",
+  appId: "YOUR_APP_ID",
+  // measurementId は必須じゃないので、無くてもOK
+  // measurementId: "YOUR_MEASUREMENT_ID"
 };
+
 
 // ===============================================
 // Firebase 初期化
 // ===============================================
 const app = initializeApp(firebaseConfig);
-
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
 
 // ===============================================
-// 認証状態監視
+// 認証状態監視（ログイン状態でCSS切替）
+// body.logged-in が付く/外れる
 // ===============================================
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -74,6 +79,7 @@ window.login = async (email, password) => {
     await signInWithEmailAndPassword(auth, email, password);
     alert("ログイン成功");
   } catch (e) {
+    console.error(e);
     alert(e.message);
   }
 };
@@ -87,6 +93,7 @@ window.register = async (email, password) => {
     await createUserWithEmailAndPassword(auth, email, password);
     alert("ユーザー作成完了");
   } catch (e) {
+    console.error(e);
     alert(e.message);
   }
 };
@@ -96,41 +103,71 @@ window.register = async (email, password) => {
 // ログアウト
 // ===============================================
 window.logout = async () => {
-  await signOut(auth);
-  alert("ログアウトしました");
+  try {
+    await signOut(auth);
+    alert("ログアウトしました");
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  }
 };
 
 
 // ===============================================
 // 配達データ保存（Firestore）
+// deliveries コレクションに保存
 // ===============================================
 window.saveDelivery = async (data) => {
-  await addDoc(collection(db, "deliveries"), {
-    ...data,
-    createdAt: serverTimestamp(),
-    uid: auth.currentUser?.uid || null
-  });
+  try {
+    const uid = auth.currentUser?.uid || null;
+
+    await addDoc(collection(db, "deliveries"), {
+      ...data,
+      createdAt: serverTimestamp(),
+      uid
+    });
+
+    return true;
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+    return false;
+  }
 };
 
 
 // ===============================================
-// 配達データ取得
+// 配達データ取得（Firestore）
 // ===============================================
 window.loadDeliveries = async () => {
-  const snap = await getDocs(collection(db, "deliveries"));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try {
+    const snap = await getDocs(collection(db, "deliveries"));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+    return [];
+  }
 };
 
 
 // ===============================================
 // 画像アップロード（Storage）
+// images/ に保存してURLを返す
 // ===============================================
 window.uploadImage = async (file) => {
-  const imageRef = ref(
-    storage,
-    `images/${Date.now()}_${file.name}`
-  );
+  try {
+    if (!file) throw new Error("ファイルが選択されていません");
 
-  await uploadBytes(imageRef, file);
-  return await getDownloadURL(imageRef);
+    const safeName = String(file.name || "image").replace(/[^\w.\-]+/g, "_");
+    const imageRef = ref(storage, `images/${Date.now()}_${safeName}`);
+
+    await uploadBytes(imageRef, file);
+    const url = await getDownloadURL(imageRef);
+    return url;
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+    return null;
+  }
 };
