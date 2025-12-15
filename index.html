@@ -1,107 +1,264 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>OFA Delivery</title>
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OFA 配達アプリ</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
+<!-- バーコード（iPhone対応） -->
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+
+<!-- OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+:root{
+  --yellow:#FFD400;
+  --blue:#2563eb;
+  --red:#ef4444;
+  --gray:#e5e7eb;
+}
+body{
+  margin:0;
+  font-family:"Noto Sans JP",sans-serif;
+  background:#f5f7fb;
+}
+header{
+  position:sticky;top:0;z-index:10;
+  background:#fff;border-bottom:1px solid #ddd;
+}
+.top{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px;
+}
+.logo{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,var(--yellow),#fff2a8);
+  display:grid;place-items:center;font-weight:900;
+}
+nav{
+  display:flex;gap:6px;padding:6px;
+}
+.tab{
+  flex:1;padding:10px;border-radius:12px;
+  border:1px solid #ddd;background:#fff;font-weight:900;
+}
+.tab.active{background:#eef3ff}
+main{padding:10px}
+.card{
+  background:#fff;border-radius:16px;padding:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.08);
+}
+button{
+  border:0;border-radius:12px;padding:10px;font-weight:900;
+}
+.btn-yellow{background:var(--yellow)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-gray{background:var(--gray)}
+.list{display:grid;gap:10px;margin-top:10px}
+.item{
+  border:1px solid #ddd;border-radius:12px;padding:10px;
+}
+.badge{
+  display:inline-block;padding:3px 8px;border-radius:999px;
+  border:1px solid #ddd;font-size:11px;font-weight:900;
+}
+.warn{color:var(--red)}
+video{width:100%;border-radius:12px}
+.mini{font-size:12px;color:#666}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+input,select{
+  width:100%;padding:8px;border-radius:10px;border:1px solid #ccc;
+}
+</style>
 </head>
+
 <body>
 
-<div class="bgGlow"></div>
-
-<div class="container">
-
-  <div class="topbar">
-    <div class="brand">
-      <div class="logoChip">OFA</div>
+<header>
+  <div class="top">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="logo">OFA</div>
       <div>
-        <div class="brandTitle">OFA DELIVERY</div>
-        <small class="brandSub">ログインして開始</small>
+        <b>配達アプリ</b><br>
+        <small>ヤマト型・完全版</small>
       </div>
     </div>
-    <span class="badge">PWA / Cloud DB</span>
+    <div id="gps">GPS: 未取得</div>
+  </div>
+  <nav>
+    <button class="tab active" data-tab="scan">SCAN</button>
+    <button class="tab" data-tab="todo">未配達</button>
+    <button class="tab" data-tab="done">完了</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- SCAN -->
+<section id="scan" class="card">
+  <button class="btn-blue" onclick="getGPS()">📍 GPS取得</button>
+  <button class="btn-yellow" onclick="startScan()">📷 連続スキャン</button>
+  <button class="btn-gray" onclick="toggleTorch()">🔦 ライト</button>
+
+  <label style="margin-top:10px">荷物種別</label>
+  <select id="kind">
+    <option>宅配</option>
+    <option>手紙</option>
+    <option>ポスト投函</option>
+    <option>冷蔵・冷凍</option>
+    <option>代引</option>
+    <option>大物</option>
+    <option>壊れ物</option>
+    <option>書類</option>
+    <option>医療品</option>
+    <option>建材</option>
+  </select>
+
+  <div id="camera" style="display:none;margin-top:8px">
+    <video id="video"></video>
   </div>
 
-  <!-- エラー表示（ここに出る） -->
-  <div id="err" class="errBox" style="display:none;"></div>
+  <button class="btn-gray" style="margin-top:8px" onclick="tempAdd()">＋ 読めない荷物（仮登録）</button>
+</section>
 
-  <div class="card">
-    <div class="cardTitle">
-      <strong>ログイン</strong>
-      <span class="badge">Email / Password</span>
-    </div>
+<!-- TODO -->
+<section id="todo" class="card" style="display:none">
+  <div class="list" id="todoList"></div>
+</section>
 
-    <div class="twoCol">
-      <div class="field">
-        <label>Email</label>
-        <input id="email" type="email" placeholder="example@ofa.co.jp" />
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input id="pass" type="password" placeholder="******" />
-      </div>
-    </div>
+<!-- DONE -->
+<section id="done" class="card" style="display:none">
+  <div class="list" id="doneList"></div>
+</section>
 
-    <div class="btnRow">
-      <button class="btn primary" id="btnLogin" type="button">ログイン</button>
-      <button class="btn neon" id="btnSignup" type="button">新規作成（管理者作成運用でもOK）</button>
-    </div>
+</main>
 
-    <hr class="sep" />
+<script>
+/* ===== 基本 ===== */
+const KEY="ofa_yamato_complete";
+let data=JSON.parse(localStorage.getItem(KEY)||"[]");
+let gps=null;
+let stream,track,torch=false;
+const reader=new ZXing.BrowserMultiFormatReader();
 
-    <div class="btnRow">
-      <a class="btn green" href="driver.html">配達員アプリへ</a>
-      <a class="btn danger" href="admin.html">管理画面へ</a>
-    </div>
-
-    <p class="note" style="margin-top:12px;">
-      ※最初に <b>Firebase設定</b> を <code>app.js</code> に貼ってください。
-    </p>
-  </div>
-</div>
-
-<script type="module">
-  const $ = (id) => document.getElementById(id);
-  const showErr = (msg) => {
-    const box = $("err");
-    box.style.display = "block";
-    box.textContent = msg;
-  };
-
-  // app.js 読み込み失敗を画面に出す（ここが超大事）
-  let api;
-  try {
-    api = await import("./app.js");
-  } catch (e) {
-    showErr("app.jsの読み込みに失敗しました。\n\n" + (e?.message ?? String(e)) + "\n\n（app.jsがJSエラー/未コミット/キャッシュの可能性）");
-    throw e;
+/* ===== Tabs ===== */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    ["scan","todo","done"].forEach(id=>document.getElementById(id).style.display="none");
+    document.getElementById(t.dataset.tab).style.display="block";
+    render();
   }
+});
 
-  const authLogin = api.authLogin ?? window.login;
-  const authSignup = api.authSignup ?? window.register;
-
-  if (!authLogin || !authSignup) {
-    showErr("authLogin/authSignup が見つかりません。\napp.js がA案の全文になっているか確認してください。");
-  }
-
-  $("btnLogin").addEventListener("click", async () => {
-    try {
-      await authLogin($("email").value.trim(), $("pass").value);
-      alert("ログインOK");
-    } catch (e) {
-      alert(e?.message ?? String(e));
-    }
+/* ===== GPS ===== */
+function getGPS(){
+  navigator.geolocation.getCurrentPosition(p=>{
+    gps={lat:p.coords.latitude,lng:p.coords.longitude};
+    document.getElementById("gps").innerText="GPS: OK";
   });
+}
 
-  $("btnSignup").addEventListener("click", async () => {
-    try {
-      await authSignup($("email").value.trim(), $("pass").value);
-      alert("作成OK（ログイン済）");
-    } catch (e) {
-      alert(e?.message ?? String(e));
-    }
+/* ===== Scan ===== */
+async function startScan(){
+  document.getElementById("camera").style.display="block";
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  track=stream.getVideoTracks()[0];
+  video.srcObject=stream;
+  video.play();
+
+  reader.decodeFromVideoElement(video,(res)=>{
+    if(res) add(res.text);
   });
+}
+
+/* ===== Torch ===== */
+async function toggleTorch(){
+  if(!track) return;
+  torch=!torch;
+  await track.applyConstraints({advanced:[{torch}]});
+}
+
+/* ===== Add ===== */
+function add(code){
+  if(data.find(x=>x.code===code && x.status==="todo")) return;
+  data.push({
+    id:Date.now()+Math.random(),
+    code,
+    kind:kind.value,
+    name:"",
+    address:"",
+    status:"todo",
+    time:new Date().toLocaleString()
+  });
+  save(); render();
+}
+
+/* 仮登録 */
+function tempAdd(){
+  const n=data.filter(x=>x.code.startsWith("TEMP")).length+1;
+  add("TEMP-"+String(n).padStart(4,"0"));
+}
+
+/* ===== OCR ===== */
+async function ocr(id){
+  const img=prompt("画像URLを貼ってください（簡易OCR）");
+  if(!img) return;
+  const r=await Tesseract.recognize(img,"jpn");
+  alert(r.data.text);
+}
+
+/* ===== 配達 ===== */
+function nav(i){
+  if(!i.address||!i.name) return alert("名前・住所必須");
+  const url=gps
+    ?`https://www.google.com/maps/dir/?api=1&origin=${gps.lat},${gps.lng}&destination=${encodeURIComponent(i.address)}`
+    :`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}`;
+  window.open(url,"_blank");
+}
+function complete(i){
+  if(!i.name||!i.address) return alert("名前・住所必須");
+  i.status="done";
+  i.done=new Date().toLocaleString();
+  save(); render();
+}
+
+/* ===== Render ===== */
+function render(){
+  todoList.innerHTML=""; doneList.innerHTML="";
+  data.filter(x=>x.status==="todo").forEach(x=>{
+    todoList.innerHTML+=`
+    <div class="item">
+      <b>${x.code}</b>
+      <div class="mini">
+        <span class="badge">${x.kind}</span>
+        ${(!x.name||!x.address)?'<span class="warn">⚠ 未入力</span>':""}
+      </div>
+      <input placeholder="宛名（必須）" value="${x.name}" oninput="x=this.parentNode.obj.name=this.value">
+      <input placeholder="住所（必須）" value="${x.address}" oninput="x=this.parentNode.obj.address=this.value">
+      <div class="actions">
+        <button class="btn-blue" onclick="nav(this.parentNode.parentNode.obj)">ナビ</button>
+        <button class="btn-yellow" onclick="complete(this.parentNode.parentNode.obj)">完了</button>
+        <button class="btn-gray" onclick="ocr(this.parentNode.parentNode.obj.id)">OCR</button>
+      </div>
+    </div>`;
+    todoList.lastChild.obj=x;
+  });
+  data.filter(x=>x.status==="done").forEach(x=>{
+    doneList.innerHTML+=`
+    <div class="item">
+      <b>${x.code}</b>
+      <div class="mini">${x.kind} / 完了 ${x.done}</div>
+    </div>`;
+  });
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+render();
 </script>
 
 </body>
