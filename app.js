@@ -93,3 +93,14 @@ function beep() {
   osc.start();
   setTimeout(() => osc.stop(), 120);
 }
+let map;
+let markers = [];
+let followMe = true;
+
+function loadGoogleMap() {
+  const script = document.createElement("script");
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
+  script.async = true;
+  script.onload = initMap;
+  document.body.appendChild(script);
+}
