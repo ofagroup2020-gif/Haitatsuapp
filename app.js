@@ -1,5 +1,5 @@
 // ===============================================
-// OFA 配達アプリ V2（Firebase 完全接続）
+// OFA 配達アプリ V2（Firebase 完全接続 / A案）
 // Auth / Firestore / Storage
 // ===============================================
 
@@ -19,11 +19,7 @@ import {
   collection,
   addDoc,
   getDocs,
-  serverTimestamp,
-  query,
-  orderBy,
-  limit,
-  where
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -33,10 +29,8 @@ import {
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-
 // ===============================================
-// Firebase 設定（あなたの実データ）
-// ※ measurementId はAnalytics用。今回なくても動く（入れててもOK）
+// Firebase 設定（Firebase Console → Config から）
 // ===============================================
 const firebaseConfig = {
   apiKey: "AIzaSyBv7MvCNx5ifQV6GBeBjWNIuvG-0JgKtwQ",
@@ -44,10 +38,8 @@ const firebaseConfig = {
   projectId: "haitatsu-app-27d69",
   storageBucket: "haitatsu-app-27d69.firebasestorage.app",
   messagingSenderId: "1074595379120",
-  appId: "1:1074595379120:web:6b7cd4d8b4b79d9a5d0875",
-  measurementId: "G-BZ8E7FGGYV"
+  appId: "1:1074595379120:web:6b7cd4d8b4b79d9a5d0875"
 };
-
 
 // ===============================================
 // Firebase 初期化
@@ -58,145 +50,66 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-
 // ===============================================
-// 便利：現在ユーザー取得
-// ===============================================
-const getUid = () => auth.currentUser?.uid || null;
-const getEmail = () => auth.currentUser?.email || null;
-
-
-// ===============================================
-// 認証状態監視（UI切替用 class）
+// 認証状態監視
 // ===============================================
 onAuthStateChanged(auth, (user) => {
   if (user) {
     console.log("ログイン中:", user.email);
     document.body.classList.add("logged-in");
-    document.body.classList.remove("logged-out");
   } else {
     console.log("未ログイン");
     document.body.classList.remove("logged-in");
-    document.body.classList.add("logged-out");
   }
 });
 
-
 // ===============================================
-// ログイン / 新規登録 / ログアウト（HTMLから呼ぶ用）
+// 認証（index.html から呼ばれる）
 // ===============================================
-window.login = async (email, password) => {
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    alert("ログイン成功");
-    return true;
-  } catch (e) {
-    console.error(e);
-    alert(e.message);
-    return false;
-  }
+export const authLogin = async (email, password) => {
+  await signInWithEmailAndPassword(auth, email, password);
 };
 
-window.register = async (email, password) => {
-  try {
-    await createUserWithEmailAndPassword(auth, email, password);
-    alert("ユーザー作成完了");
-    return true;
-  } catch (e) {
-    console.error(e);
-    alert(e.message);
-    return false;
-  }
+export const authSignup = async (email, password) => {
+  await createUserWithEmailAndPassword(auth, email, password);
 };
 
-window.logout = async () => {
-  try {
-    await signOut(auth);
-    alert("ログアウトしました");
-    return true;
-  } catch (e) {
-    console.error(e);
-    alert(e.message);
-    return false;
-  }
+export const authLogout = async () => {
+  await signOut(auth);
 };
-
 
 // ===============================================
 // 配達データ保存（Firestore）
-// - data はオブジェクトを想定（例：日付/エリア/売上/メモなど）
 // ===============================================
-window.saveDelivery = async (data) => {
-  // 未ログイン時は弾く（セキュリティ的に安全）
-  if (!getUid()) throw new Error("未ログインです。ログインしてください。");
+export const saveDelivery = async (data) => {
+  if (!auth.currentUser) throw new Error("未ログインです");
 
-  const payload = {
+  await addDoc(collection(db, "deliveries"), {
     ...data,
-    createdAt: serverTimestamp(),
-    uid: getUid(),
-    email: getEmail()
-  };
-
-  const docRef = await addDoc(collection(db, "deliveries"), payload);
-  return { id: docRef.id, ...payload };
+    uid: auth.currentUser.uid,
+    createdAt: serverTimestamp()
+  });
 };
 
-
 // ===============================================
-// 配達データ取得（Firestore）
-// - まずは全件（簡易）
+// 配達データ取得
 // ===============================================
-window.loadDeliveries = async () => {
+export const loadDeliveries = async () => {
   const snap = await getDocs(collection(db, "deliveries"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
-
-// ===============================================
-// 自分の配達データだけ取得（おすすめ）
-// - Firestoreルールで「自分だけ」にするなら、これ使う
-// ===============================================
-window.loadMyDeliveries = async (max = 200) => {
-  if (!getUid()) throw new Error("未ログインです。ログインしてください。");
-
-  const qy = query(
-    collection(db, "deliveries"),
-    where("uid", "==", getUid()),
-    orderBy("createdAt", "desc"),
-    limit(max)
-  );
-
-  const snap = await getDocs(qy);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-};
-
-
 // ===============================================
 // 画像アップロード（Storage）
-// - file: input[type=file] の File
-// - 戻り値: 公開URL（getDownloadURL）
 // ===============================================
-window.uploadImage = async (file) => {
-  if (!getUid()) throw new Error("未ログインです。ログインしてください。");
+export const uploadImage = async (file) => {
   if (!file) throw new Error("ファイルがありません");
 
-  const safeName = String(file.name || "image").replace(/[^\w.\-]/g, "_");
-  const path = `images/${getUid()}/${Date.now()}_${safeName}`;
+  const imageRef = ref(
+    storage,
+    `images/${Date.now()}_${file.name}`
+  );
 
-  const imageRef = ref(storage, path);
   await uploadBytes(imageRef, file);
-
-  const url = await getDownloadURL(imageRef);
-  return { url, path };
+  return await getDownloadURL(imageRef);
 };
-
-
-// ===============================================
-// 動作確認用（ブラウザConsoleで使える）
-// ===============================================
-window.__firebaseInfo = () => ({
-  projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket,
-  uid: getUid(),
-  email: getEmail()
-});
