@@ -4,90 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>OFA 配達アプリ</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-<!-- バーコード（iPhone対応） -->
+<!-- ✅ iPhone対応 バーコード（ZXing） -->
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
-
-<!-- OCR -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
 :root{
-  --yellow:#FFD400;
-  --blue:#2563eb;
-  --red:#ef4444;
-  --gray:#e5e7eb;
+  --yellow:#FFD400; --blue:#2563eb; --red:#ef4444; --gray:#e5e7eb;
 }
-body{
-  margin:0;
-  font-family:"Noto Sans JP",sans-serif;
-  background:#f5f7fb;
-}
-header{
-  position:sticky;top:0;z-index:10;
-  background:#fff;border-bottom:1px solid #ddd;
-}
-.top{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px;
-}
-.logo{
-  width:40px;height:40px;border-radius:12px;
-  background:linear-gradient(135deg,var(--yellow),#fff2a8);
-  display:grid;place-items:center;font-weight:900;
-}
-nav{
-  display:flex;gap:6px;padding:6px;
-}
-.tab{
-  flex:1;padding:10px;border-radius:12px;
-  border:1px solid #ddd;background:#fff;font-weight:900;
-}
+body{margin:0;font-family:"Noto Sans JP",sans-serif;background:#f5f7fb;color:#0f172a}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e5e7eb}
+.top{display:flex;justify-content:space-between;align-items:center;padding:10px}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#fff2a8);
+display:grid;place-items:center;font-weight:900}
+nav{display:flex;gap:6px;padding:6px}
+.tab{flex:1;padding:10px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:900}
 .tab.active{background:#eef3ff}
 main{padding:10px}
-.card{
-  background:#fff;border-radius:16px;padding:12px;
-  box-shadow:0 6px 20px rgba(0,0,0,.08);
-}
-button{
-  border:0;border-radius:12px;padding:10px;font-weight:900;
-}
+.card{background:#fff;border-radius:16px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+button{border:0;border-radius:12px;padding:10px;font-weight:900}
 .btn-yellow{background:var(--yellow)}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-red{background:var(--red);color:#fff}
 .btn-gray{background:var(--gray)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+select,input{width:100%;padding:10px;border-radius:12px;border:1px solid #cbd5e1}
+.small{font-size:12px;color:#64748b}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:12px}
+.videoWrap{margin-top:10px;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#0b1220}
+video{width:100%;height:260px;object-fit:cover;display:block}
 .list{display:grid;gap:10px;margin-top:10px}
-.item{
-  border:1px solid #ddd;border-radius:12px;padding:10px;
-}
-.badge{
-  display:inline-block;padding:3px 8px;border-radius:999px;
-  border:1px solid #ddd;font-size:11px;font-weight:900;
-}
-.warn{color:var(--red)}
-video{width:100%;border-radius:12px}
-.mini{font-size:12px;color:#666}
-.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-input,select{
-  width:100%;padding:8px;border-radius:10px;border:1px solid #ccc;
-}
+.item{border:1px solid #e5e7eb;border-radius:14px;padding:10px}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #e5e7eb;font-size:11px;font-weight:900}
+.warn{color:var(--red);font-weight:900}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 </style>
 </head>
 
 <body>
-
 <header>
   <div class="top">
     <div style="display:flex;gap:8px;align-items:center">
       <div class="logo">OFA</div>
       <div>
-        <b>配達アプリ</b><br>
-        <small>ヤマト型・完全版</small>
+        <b>配達アプリ</b><br><small class="small">ヤマト型・完全版（iPhone対応）</small>
       </div>
     </div>
-    <div id="gps">GPS: 未取得</div>
+    <div class="pill" id="gps">GPS: 未取得</div>
   </div>
   <nav>
     <button class="tab active" data-tab="scan">SCAN</button>
@@ -97,169 +61,353 @@ input,select{
 </header>
 
 <main>
+  <!-- SCAN -->
+  <section id="scan" class="card">
+    <div class="row">
+      <button class="btn-blue" onclick="getGPS()">📍 GPS取得</button>
+      <button class="btn-yellow" onclick="startScan()">📷 連続スキャン</button>
+      <button class="btn-gray" onclick="stopScan()">⏹ 停止</button>
+      <button class="btn-gray" onclick="toggleTorch()">🔦 ライト</button>
+    </div>
 
-<!-- SCAN -->
-<section id="scan" class="card">
-  <button class="btn-blue" onclick="getGPS()">📍 GPS取得</button>
-  <button class="btn-yellow" onclick="startScan()">📷 連続スキャン</button>
-  <button class="btn-gray" onclick="toggleTorch()">🔦 ライト</button>
+    <div style="margin-top:10px">
+      <label class="small">荷物種別</label>
+      <select id="kind">
+        <option value="宅配">宅配</option>
+        <option value="手紙">手紙</option>
+        <option value="ポスト投函">ポスト投函</option>
+        <option value="冷蔵・冷凍">冷蔵・冷凍</option>
+        <option value="代引">代引</option>
+        <option value="大物">大物</option>
+        <option value="壊れ物">壊れ物</option>
+        <option value="書類">書類</option>
+        <option value="医療品">医療品</option>
+        <option value="建材">建材</option>
+      </select>
+    </div>
 
-  <label style="margin-top:10px">荷物種別</label>
-  <select id="kind">
-    <option>宅配</option>
-    <option>手紙</option>
-    <option>ポスト投函</option>
-    <option>冷蔵・冷凍</option>
-    <option>代引</option>
-    <option>大物</option>
-    <option>壊れ物</option>
-    <option>書類</option>
-    <option>医療品</option>
-    <option>建材</option>
-  </select>
+    <div class="videoWrap" id="videoWrap" style="display:none">
+      <video id="video" playsinline muted></video>
+    </div>
 
-  <div id="camera" style="display:none;margin-top:8px">
-    <video id="video"></video>
-  </div>
+    <div class="row">
+      <button class="btn-gray" onclick="tempAdd()">＋ 読めない荷物（仮登録）</button>
+      <button class="btn-gray" onclick="manualAdd()">＋ 手動入力</button>
+    </div>
 
-  <button class="btn-gray" style="margin-top:8px" onclick="tempAdd()">＋ 読めない荷物（仮登録）</button>
-</section>
+    <div class="small" id="status" style="margin-top:8px">待機中：連続スキャンを押してください。</div>
+  </section>
 
-<!-- TODO -->
-<section id="todo" class="card" style="display:none">
-  <div class="list" id="todoList"></div>
-</section>
+  <!-- TODO -->
+  <section id="todo" class="card" style="display:none">
+    <div class="small">※「名前・住所」は配達前までに必須（未入力は赤表示）</div>
+    <div class="list" id="todoList"></div>
+  </section>
 
-<!-- DONE -->
-<section id="done" class="card" style="display:none">
-  <div class="list" id="doneList"></div>
-</section>
-
+  <!-- DONE -->
+  <section id="done" class="card" style="display:none">
+    <div class="list" id="doneList"></div>
+  </section>
 </main>
 
 <script>
-/* ===== 基本 ===== */
-const KEY="ofa_yamato_complete";
-let data=JSON.parse(localStorage.getItem(KEY)||"[]");
-let gps=null;
-let stream,track,torch=false;
-const reader=new ZXing.BrowserMultiFormatReader();
+const KEY="ofa_yamato_complete_v2";
+let data = JSON.parse(localStorage.getItem(KEY) || "[]");
 
-/* ===== Tabs ===== */
+let gps=null;
+let stream=null;
+let track=null;
+let torch=false;
+
+let scanning=false;
+let lastCode="";
+let lastAt=0;
+
+const { BrowserMultiFormatReader, NotFoundException, BarcodeFormat, DecodeHintType } = ZXing;
+
+// ✅ 読める確率を上げるヒント（主要フォーマット）
+const hints = new Map();
+hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+  BarcodeFormat.QR_CODE,
+  BarcodeFormat.CODE_128,
+  BarcodeFormat.CODE_39,
+  BarcodeFormat.EAN_13,
+  BarcodeFormat.EAN_8,
+  BarcodeFormat.ITF,
+  BarcodeFormat.DATA_MATRIX,
+  BarcodeFormat.PDF_417
+]);
+hints.set(DecodeHintType.TRY_HARDER, true);
+
+// 連続スキャン間隔（ms）
+const codeReader = new BrowserMultiFormatReader(hints, 250);
+
+const $ = (id)=>document.getElementById(id);
+
+// Tabs
 document.querySelectorAll(".tab").forEach(t=>{
   t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
-    ["scan","todo","done"].forEach(id=>document.getElementById(id).style.display="none");
-    document.getElementById(t.dataset.tab).style.display="block";
+    ["scan","todo","done"].forEach(id=>$(id).style.display="none");
+    $(t.dataset.tab).style.display="block";
     render();
   }
 });
 
-/* ===== GPS ===== */
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
 function getGPS(){
-  navigator.geolocation.getCurrentPosition(p=>{
-    gps={lat:p.coords.latitude,lng:p.coords.longitude};
-    document.getElementById("gps").innerText="GPS: OK";
-  });
+  navigator.geolocation.getCurrentPosition(
+    p=>{
+      gps={lat:p.coords.latitude,lng:p.coords.longitude};
+      $("gps").textContent="GPS: OK";
+    },
+    e=>alert("GPS取得できませんでした（設定→位置情報をON）")
+  );
 }
 
-/* ===== Scan ===== */
+function beep(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value=880;
+    g.gain.value=0.05;
+    o.start();
+    setTimeout(()=>{o.stop(); ctx.close();}, 80);
+  }catch{}
+  if(navigator.vibrate) navigator.vibrate(40);
+}
+
 async function startScan(){
-  document.getElementById("camera").style.display="block";
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-  track=stream.getVideoTracks()[0];
-  video.srcObject=stream;
-  video.play();
+  if(scanning) return;
+  scanning=true;
+  $("status").textContent="カメラ起動中…（許可が出たらOK）";
+  $("videoWrap").style.display="block";
 
-  reader.decodeFromVideoElement(video,(res)=>{
-    if(res) add(res.text);
-  });
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
+    track = stream.getVideoTracks()[0];
+
+    $("video").srcObject = stream;
+    await $("video").play();
+
+    $("status").textContent="スキャン中：バーコード/QRを枠内に入れてください。";
+
+    // ✅ iPhoneで安定：decodeFromVideoDevice を使う
+    codeReader.decodeFromVideoDevice(null, "video", (result, err) => {
+      if(!scanning) return;
+
+      if(result){
+        const code = result.getText();
+        const now = Date.now();
+
+        // ✅ 連続で同じコード拾うの防止
+        if(code === lastCode && (now-lastAt) < 1200) return;
+        lastCode = code; lastAt = now;
+
+        add(code);
+        beep();
+        $("status").textContent=`読み取りOK：${code}`;
+      }else if(err && !(err instanceof NotFoundException)){
+        // NotFoundは「見つからない」なので無視。その他だけ表示
+        $("status").textContent="読み取りエラー：距離/明るさ/角度を調整してください。";
+      }
+    });
+  }catch(e){
+    scanning=false;
+    $("status").textContent="カメラ起動に失敗：Safariのカメラ許可を確認してください。";
+    alert("カメラが起動できません。iPhone設定→Safari→カメラを許可、またはサイト設定でカメラ許可してください。");
+  }
 }
 
-/* ===== Torch ===== */
+function stopScan(){
+  scanning=false;
+  try{ codeReader.reset(); }catch{}
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
+    stream=null; track=null;
+  }
+  $("status").textContent="停止しました。";
+}
+
 async function toggleTorch(){
-  if(!track) return;
-  torch=!torch;
-  await track.applyConstraints({advanced:[{torch}]});
+  try{
+    if(!track) return alert("先に連続スキャンでカメラを起動してください。");
+    const cap = track.getCapabilities ? track.getCapabilities() : {};
+    if(!cap.torch) return alert("この端末/ブラウザはライト制御に非対応です。");
+    torch = !torch;
+    await track.applyConstraints({ advanced: [{ torch }] });
+  }catch(e){
+    alert("ライト切替に失敗しました。");
+  }
 }
 
-/* ===== Add ===== */
-function add(code){
-  if(data.find(x=>x.code===code && x.status==="todo")) return;
-  data.push({
-    id:Date.now()+Math.random(),
-    code,
-    kind:kind.value,
-    name:"",
-    address:"",
-    status:"todo",
-    time:new Date().toLocaleString()
-  });
-  save(); render();
-}
-
-/* 仮登録 */
 function tempAdd(){
-  const n=data.filter(x=>x.code.startsWith("TEMP")).length+1;
-  add("TEMP-"+String(n).padStart(4,"0"));
+  const n = data.filter(x=>String(x.code||"").startsWith("TEMP-")).length + 1;
+  add(`TEMP-${String(n).padStart(4,"0")}`);
 }
 
-/* ===== OCR ===== */
-async function ocr(id){
-  const img=prompt("画像URLを貼ってください（簡易OCR）");
-  if(!img) return;
-  const r=await Tesseract.recognize(img,"jpn");
-  alert(r.data.text);
+function manualAdd(){
+  const code = prompt("荷物番号（無ければ空でもOK）");
+  const fixed = (code && code.trim()) ? code.trim() : "";
+  if(!fixed){
+    tempAdd();
+  }else{
+    add(fixed);
+  }
 }
 
-/* ===== 配達 ===== */
-function nav(i){
-  if(!i.address||!i.name) return alert("名前・住所必須");
-  const url=gps
-    ?`https://www.google.com/maps/dir/?api=1&origin=${gps.lat},${gps.lng}&destination=${encodeURIComponent(i.address)}`
-    :`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}`;
-  window.open(url,"_blank");
+function add(code){
+  // 重複防止（未配達内）
+  if(data.find(x=>x.code===code && x.status==="todo")) return;
+
+  data.push({
+    id: Date.now() + Math.random(),
+    code,
+    kind: $("kind").value,
+    name: "",
+    address: "",
+    status: "todo",
+    createdAt: new Date().toLocaleString()
+  });
+  save();
+  render();
 }
-function complete(i){
-  if(!i.name||!i.address) return alert("名前・住所必須");
-  i.status="done";
-  i.done=new Date().toLocaleString();
+
+function openNav(item){
+  if(!item.name || !item.address){
+    alert("配達前までに「名前・住所」は必須です。未入力を埋めてください。");
+    return;
+  }
+  const url = gps
+    ? `https://www.google.com/maps/dir/?api=1&origin=${gps.lat},${gps.lng}&destination=${encodeURIComponent(item.address)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
+  window.open(url, "_blank");
+}
+
+function markDone(item){
+  if(!item.name || !item.address){
+    alert("配達前までに「名前・住所」は必須です。未入力を埋めてください。");
+    return;
+  }
+  item.status="done";
+  item.doneAt=new Date().toLocaleString();
+  save();
+  render();
+
+  // ✅ 次の未配達へ自動スクロール（ヤマト型）
+  const next = data.find(x=>x.status==="todo");
+  if(next){
+    // 未配達タブへ
+    document.querySelector('[data-tab="todo"]').click();
+  }
+}
+
+function render(){
+  $("todoList").innerHTML="";
+  $("doneList").innerHTML="";
+
+  const todos = data.filter(x=>x.status==="todo");
+  const dones = data.filter(x=>x.status==="done");
+
+  todos.forEach(x=>{
+    const warn = (!x.name || !x.address) ? `<span class="warn">⚠ 未入力</span>` : "";
+    $("todoList").insertAdjacentHTML("beforeend", `
+      <div class="item" data-id="${x.id}">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <b>${escapeHtml(x.code)}</b>
+          <span class="badge">${escapeHtml(x.kind)}</span>
+        </div>
+        <div class="small">${escapeHtml(x.createdAt)} ${warn}</div>
+
+        <div style="margin-top:8px" class="small">宛名（配達前までに必須）</div>
+        <input placeholder="例）山田 太郎" value="${escapeAttr(x.name)}" oninput="updateField('${x.id}','name',this.value)">
+
+        <div style="margin-top:8px" class="small">住所（配達前までに必須）</div>
+        <input placeholder="例）大阪市〇〇区〇〇…" value="${escapeAttr(x.address)}" oninput="updateField('${x.id}','address',this.value)">
+
+        <div class="actions">
+          <button class="btn-blue" onclick="openNav(getItem('${x.id}'))">ナビ</button>
+          <button class="btn-yellow" onclick="markDone(getItem('${x.id}'))">${(x.kind==='手紙'||x.kind==='ポスト投函')?'投函完了':'配達完了'}</button>
+          <button class="btn-gray" onclick="quickFill('${x.id}')">⚡ 住所/名前を貼付</button>
+          <button class="btn-red" onclick="removeItem('${x.id}')">削除</button>
+        </div>
+      </div>
+    `);
+  });
+
+  dones.forEach(x=>{
+    $("doneList").insertAdjacentHTML("beforeend", `
+      <div class="item">
+        <b>${escapeHtml(x.code)}</b>
+        <div class="small"><span class="badge">${escapeHtml(x.kind)}</span> 完了：${escapeHtml(x.doneAt||"")}</div>
+        <div class="small">${escapeHtml(x.name||"")} / ${escapeHtml(x.address||"")}</div>
+      </div>
+    `);
+  });
+}
+
+function getItem(id){
+  return data.find(x=>String(x.id)===String(id));
+}
+
+function updateField(id, key, val){
+  const it = getItem(id);
+  if(!it) return;
+  it[key]=val;
+  save();
+}
+
+function quickFill(id){
+  const it = getItem(id);
+  if(!it) return;
+  const clip = prompt("住所や宛名を貼り付け（例：山田太郎 大阪市…）\n→自分でコピペして貼ってOK");
+  if(!clip) return;
+  // 超簡易：最初の1行を名前っぽく、残りを住所に寄せる
+  const s = clip.replace(/\r/g,"").trim();
+  if(!s) return;
+
+  // 住所っぽい文字（都道府県/市/区/町/丁目など）が入っていれば住所に
+  const hasAddr = /(都|道|府|県|市|区|町|村|丁目|番地|号)/.test(s);
+
+  if(hasAddr){
+    // 先頭に名前が入ってるパターンもあるので、区切りで分解
+    const parts = s.split(/\s+/);
+    if(parts.length>=2){
+      it.name = it.name || parts[0];
+      it.address = it.address || parts.slice(1).join(" ");
+    }else{
+      it.address = it.address || s;
+    }
+  }else{
+    it.name = it.name || s;
+  }
   save(); render();
 }
 
-/* ===== Render ===== */
-function render(){
-  todoList.innerHTML=""; doneList.innerHTML="";
-  data.filter(x=>x.status==="todo").forEach(x=>{
-    todoList.innerHTML+=`
-    <div class="item">
-      <b>${x.code}</b>
-      <div class="mini">
-        <span class="badge">${x.kind}</span>
-        ${(!x.name||!x.address)?'<span class="warn">⚠ 未入力</span>':""}
-      </div>
-      <input placeholder="宛名（必須）" value="${x.name}" oninput="x=this.parentNode.obj.name=this.value">
-      <input placeholder="住所（必須）" value="${x.address}" oninput="x=this.parentNode.obj.address=this.value">
-      <div class="actions">
-        <button class="btn-blue" onclick="nav(this.parentNode.parentNode.obj)">ナビ</button>
-        <button class="btn-yellow" onclick="complete(this.parentNode.parentNode.obj)">完了</button>
-        <button class="btn-gray" onclick="ocr(this.parentNode.parentNode.obj.id)">OCR</button>
-      </div>
-    </div>`;
-    todoList.lastChild.obj=x;
-  });
-  data.filter(x=>x.status==="done").forEach(x=>{
-    doneList.innerHTML+=`
-    <div class="item">
-      <b>${x.code}</b>
-      <div class="mini">${x.kind} / 完了 ${x.done}</div>
-    </div>`;
-  });
+function removeItem(id){
+  if(!confirm("削除しますか？")) return;
+  data = data.filter(x=>String(x.id)!==String(id));
+  save(); render();
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(data))}
-render();
-</script>
 
+function escapeHtml(str){
+  return String(str??"")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+// 初期描画
+render();
+
+// ページ離脱でカメラ停止
+window.addEventListener("beforeunload", stopScan);
+</script>
 </body>
 </html>
