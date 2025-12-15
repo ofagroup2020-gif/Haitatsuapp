@@ -45,7 +45,6 @@ const firebaseConfig = {
 // Firebase 初期化
 // ===============================================
 const app = initializeApp(firebaseConfig);
-
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -67,16 +66,21 @@ onAuthStateChanged(auth, (user) => {
 // 認証（index.html から呼ばれる）
 // ===============================================
 export const authLogin = async (email, password) => {
-  await signInWithEmailAndPassword(auth, email, password);
+  return await signInWithEmailAndPassword(auth, email, password);
 };
 
 export const authSignup = async (email, password) => {
-  await createUserWithEmailAndPassword(auth, email, password);
+  return await createUserWithEmailAndPassword(auth, email, password);
 };
 
 export const authLogout = async () => {
-  await signOut(auth);
+  return await signOut(auth);
 };
+
+// ★互換：古いHTMLが window.login / window.register を呼んでも動くようにする
+window.login = authLogin;
+window.register = authSignup;
+window.logout = authLogout;
 
 // ===============================================
 // 配達データ保存（Firestore）
@@ -105,11 +109,7 @@ export const loadDeliveries = async () => {
 export const uploadImage = async (file) => {
   if (!file) throw new Error("ファイルがありません");
 
-  const imageRef = ref(
-    storage,
-    `images/${Date.now()}_${file.name}`
-  );
-
+  const imageRef = ref(storage, `images/${Date.now()}_${file.name}`);
   await uploadBytes(imageRef, file);
   return await getDownloadURL(imageRef);
 };
