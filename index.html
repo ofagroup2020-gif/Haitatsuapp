@@ -14,14 +14,9 @@
   <div class="topbar">
     <div class="brand">
       <div style="
-        width:38px;
-        height:38px;
-        border-radius:14px;
+        width:38px;height:38px;border-radius:14px;
         background:linear-gradient(180deg,rgba(255,214,10,.95),rgba(255,45,85,.55));
-        display:grid;
-        place-items:center;
-        font-weight:900;
-        color:#111;
+        display:grid;place-items:center;font-weight:900;color:#111;
       ">OFA</div>
       <div>
         <div style="font-size:14px;font-weight:900;">OFA DELIVERY</div>
@@ -51,9 +46,7 @@
 
     <div class="btnRow">
       <button class="btn primary" id="btnLogin">ログイン</button>
-      <button class="btn yellow" id="btnSignup">
-        新規作成（管理者作成運用でもOK）
-      </button>
+      <button class="btn yellow" id="btnSignup">新規作成（管理者作成運用でもOK）</button>
     </div>
 
     <hr class="sep" />
@@ -70,35 +63,28 @@
 
 </div>
 
-<!-- ===== Firebase & App Logic ===== -->
-<script type="module" src="app.js"></script>
-
+<!-- ===== App Logic (A案 app.js を import して使う) ===== -->
 <script type="module">
+  import { authLogin, authSignup } from "./app.js";
   const $ = (id) => document.getElementById(id);
 
-  // ログイン
-  $('btnLogin').onclick = async () => {
+  $("btnLogin").onclick = async () => {
     try {
-      await window.login(
-        $('email').value.trim(),
-        $('pass').value
-      );
-      alert('ログインOK');
+      await authLogin($("email").value.trim(), $("pass").value);
+      alert("ログインOK");
+      // 例：ログイン後に自動遷移したいなら👇
+      // location.href = "driver.html";
     } catch (e) {
-      alert(e.message);
+      alert(e?.message ?? String(e));
     }
   };
 
-  // 新規登録
-  $('btnSignup').onclick = async () => {
+  $("btnSignup").onclick = async () => {
     try {
-      await window.register(
-        $('email').value.trim(),
-        $('pass').value
-      );
-      alert('作成OK（ログイン済）');
+      await authSignup($("email").value.trim(), $("pass").value);
+      alert("作成OK（ログイン済）");
     } catch (e) {
-      alert(e.message);
+      alert(e?.message ?? String(e));
     }
   };
 </script>
