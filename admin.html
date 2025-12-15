@@ -1,67 +1,71 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>OFA 管理</title>
-<link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OFA Delivery｜管理</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <div class="container">
 
   <div class="topbar">
     <div class="brand">
-      <div style="width:38px;height:38px;border-radius:14px;background:linear-gradient(180deg,rgba(255,45,85,.95),rgba(31,122,255,.65));display:grid;place-items:center;font-weight:900;color:#111;">OFA</div>
+      <div style="width:38px;height:38px;border-radius:14px;background:linear-gradient(180deg,rgba(255,214,10,.95),rgba(255,45,85,.55));display:grid;place-items:center;font-weight:900;color:#111;">OFA</div>
       <div>
         <div style="font-size:14px;font-weight:900;">管理画面</div>
-        <small id="adminWho">未ログイン</small>
+        <small>一覧確認</small>
       </div>
     </div>
-    <div class="kpis">
-      <div class="kpi"><span class="dot yellow"></span>持出 <span id="a_out">0</span></div>
-      <div class="kpi"><span class="dot green"></span>完了 <span id="a_done">0</span></div>
-      <div class="kpi"><span class="dot red"></span>不在 <span id="a_abs">0</span></div>
-      <div class="kpi"><span class="dot blue"></span>保管 <span id="a_hold">0</span></div>
-    </div>
+    <span class="badge">Admin</span>
   </div>
 
   <div class="card">
-    <div class="twoCol">
-      <div class="field">
-        <label>検索（名前/住所/伝票）</label>
-        <input id="aq" placeholder="例）鹿児島 / 8584 / 山田" />
-      </div>
-      <div class="field">
-        <label>フィルタ</label>
-        <select id="af">
-          <option value="all">全て</option>
-          <option value="OUT">持出</option>
-          <option value="DONE">完了</option>
-          <option value="ABSENT">不在</option>
-          <option value="HOLD">保管</option>
-          <option value="RETURN">返却</option>
-          <option value="HANDOVER">引継</option>
-        </select>
-      </div>
+    <div class="cardTitle">
+      <strong>配達データ一覧</strong>
+      <span class="badge">Firestore</span>
     </div>
 
     <div class="btnRow">
-      <button class="btn" id="aRefresh">更新</button>
-      <button class="btn yellow" id="aCSV">CSV出力</button>
-      <a class="btn primary" href="driver.html">配達員へ</a>
+      <button class="btn yellow" id="btnReload">更新</button>
+      <a class="btn danger" href="index.html">戻る</a>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="list" id="alist"></div>
+    <div id="list" class="note" style="margin-top:12px;">読み込み中...</div>
   </div>
 
 </div>
 
-<script type="module" src="app.js"></script>
 <script type="module">
-  import { initAdminPage } from './app.js';
-  initAdminPage();
+  import { loadDeliveries } from "./app.js";
+  const $ = (id) => document.getElementById(id);
+
+  async function render() {
+    try {
+      const rows = await loadDeliveries();
+      const html = rows
+        .slice()
+        .reverse()
+        .map((r) => {
+          const img = r.imageUrl ? `<a href="${r.imageUrl}" target="_blank" rel="noreferrer">画像を見る</a>` : "なし";
+          return `
+            <div style="padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;margin:10px 0;">
+              <div style="font-weight:900;">${r.date ?? ""} / ${r.area ?? ""}</div>
+              <div style="opacity:.9;margin-top:4px;">取引先：${r.client ?? ""} ｜ 個数：${r.qty ?? ""}</div>
+              <div style="opacity:.8;margin-top:4px;">メモ：${r.memo ?? ""}</div>
+              <div style="opacity:.8;margin-top:6px;">画像：${img}</div>
+            </div>
+          `;
+        })
+        .join("");
+      $("list").innerHTML = html || `<div class="note">まだデータがありません</div>`;
+    } catch (e) {
+      $("list").innerHTML = `<div class="note">読み込みエラー：${e?.message ?? String(e)}</div>`;
+    }
+  }
+
+  $("btnReload").onclick = render;
+  render();
 </script>
 </body>
 </html>
