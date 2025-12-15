@@ -2,89 +2,2058 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>OFA 配達アプリ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <title>OFA 配達アプリ（Web）</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="styles.css" />
+  <!-- Leaflet (軽い地図) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-  <!-- Google Maps（※キーを入れる） -->
-  <script>
-    const GOOGLE_MAPS_API_KEY = "ここにAPIキー";
-  </script>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+
+      /* OFA pop */
+      --y:#facc15;  /* yellow */
+      --r:#ef4444;  /* red */
+      --b:#3b82f6;  /* blue */
+      --g:#10b981;
+
+      --shadow: 0 10px 25px rgba(0,0,0,.08);
+      --radius: 18px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Noto Sans JP", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(900px 450px at 10% 0%, rgba(250,204,21,.18), transparent 55%),
+        radial-gradient(900px 450px at 90% 0%, rgba(59,130,246,.16), transparent 55%),
+        radial-gradient(900px 450px at 50% 100%, rgba(239,68,68,.10), transparent 55%),
+        var(--bg);
+      color:var(--ink);
+    }
+
+    .wrap{
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 14px 14px 100px;
+    }
+
+    /* Header */
+    .top{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,.75);
+      border-bottom: 1px solid rgba(229,231,235,.7);
+    }
+    .topInner{
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 10px 14px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+    .logo{
+      width:40px; height:40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--y), #ffeaa7);
+      display:grid; place-items:center;
+      font-weight: 900;
+      color:#111827;
+      box-shadow: 0 10px 22px rgba(250,204,21,.35);
+      flex:0 0 auto;
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+      line-height:1.15;
+    }
+    .title b{
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .title small{
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .statusPills{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.85);
+      font-size: 12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.04);
+    }
+    .dot{width:8px;height:8px;border-radius:99px;background:#9ca3af}
+    .dot.ok{background: var(--g)}
+    .dot.ng{background: var(--r)}
+    .dot.warn{background: var(--y)}
+    .pill b{font-weight:900}
+    .pill .mini{color:var(--muted); font-weight:700; font-size:11px}
+
+    /* Tabs */
+    .tabs{
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 10px 14px 12px;
+    }
+    .tabRow{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+    }
+    .tabBtn{
+      flex:1 1 auto;
+      min-width: 140px;
+      border-radius: 999px;
+      padding: 10px 12px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.9);
+      font-weight: 900;
+      color:#111827;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      cursor:pointer;
+      box-shadow: 0 10px 25px rgba(0,0,0,.05);
+      user-select:none;
+    }
+    .tabBtn.active{
+      border-color: rgba(0,0,0,.06);
+      background: linear-gradient(135deg, rgba(250,204,21,.95), rgba(59,130,246,.12));
+      box-shadow: 0 14px 30px rgba(250,204,21,.22);
+    }
+    .tabBtn .badge{
+      display:inline-grid;
+      place-items:center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(17,24,39,.08);
+      color:#111827;
+      font-weight:900;
+    }
+
+    /* Card */
+    .card{
+      background: rgba(255,255,255,.88);
+      border: 1px solid rgba(229,231,235,.85);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin: 14px 0;
+    }
+    .card h2{
+      margin:0 0 10px;
+      font-size: 16px;
+    }
+    .card p{
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Form */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 720px){
+      .grid{grid-template-columns:1fr}
+      .tabBtn{min-width: 110px}
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .field label{
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .req{
+      color: var(--r);
+      font-weight: 900;
+      margin-left: 6px;
+      font-size: 11px;
+    }
+    input, select, textarea{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.95);
+      outline: none;
+      font-size: 15px;
+    }
+    textarea{min-height: 90px; resize: vertical}
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(59,130,246,.65);
+      box-shadow: 0 0 0 4px rgba(59,130,246,.12);
+    }
+
+    /* Buttons */
+    .btnRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .btn{
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 900;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      box-shadow: 0 14px 28px rgba(0,0,0,.08);
+      user-select:none;
+    }
+    .btn.primary{background: linear-gradient(135deg, var(--b), rgba(59,130,246,.75)); color:white}
+    .btn.yellow{background: linear-gradient(135deg, var(--y), rgba(250,204,21,.85)); color:#111827}
+    .btn.red{background: linear-gradient(135deg, var(--r), rgba(239,68,68,.85)); color:white}
+    .btn.gray{background: rgba(17,24,39,.06); color:#111827; border:1px solid rgba(17,24,39,.08); box-shadow:none}
+    .btn.small{padding: 9px 10px; border-radius: 12px; font-size: 13px; box-shadow:none}
+    .btn:active{transform: translateY(1px)}
+
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* Lists */
+    .listTools{
+      display:flex;
+      flex-wrap: wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 10px;
+    }
+    .listTools .left, .listTools .right{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .chip{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.9);
+      font-weight: 900;
+      font-size: 12px;
+      color:#111827;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip.active{background: rgba(59,130,246,.10); border-color: rgba(59,130,246,.25)}
+    .items{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .item{
+      border:1px solid rgba(229,231,235,.95);
+      background: rgba(255,255,255,.92);
+      border-radius: 16px;
+      padding: 12px;
+      display:flex;
+      gap: 12px;
+      align-items:flex-start;
+      box-shadow: 0 10px 20px rgba(0,0,0,.04);
+    }
+    .itemLeft{
+      display:flex; flex-direction:column; gap:8px; min-width: 0; flex: 1 1 auto;
+    }
+    .itemTop{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+    }
+    .idBadge{
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      display:grid; place-items:center;
+      font-weight: 900;
+      background: rgba(59,130,246,.10);
+      color: var(--b);
+      border:1px solid rgba(59,130,246,.20);
+      flex:0 0 auto;
+    }
+    .meta{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .meta b{
+      font-size: 15px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .meta small{
+      color: var(--muted);
+      font-weight: 700;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .tags{
+      display:flex; flex-wrap:wrap; gap:6px;
+      margin-top: 2px;
+    }
+    .tag{
+      font-size: 11px;
+      font-weight: 900;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border:1px solid rgba(229,231,235,.9);
+      background: rgba(17,24,39,.04);
+      color:#111827;
+    }
+    .tag.type{background: rgba(250,204,21,.18); border-color: rgba(250,204,21,.30)}
+    .tag.status{background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.25)}
+    .tag.status.ng{background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.22)}
+
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:stretch;
+      flex:0 0 auto;
+    }
+    .actions .btn{white-space:nowrap}
+    .dragHandle{
+      cursor: grab;
+      user-select:none;
+      font-weight: 900;
+      color: rgba(17,24,39,.45);
+      text-align:center;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border:1px dashed rgba(17,24,39,.15);
+      background: rgba(17,24,39,.03);
+    }
+
+    /* Map */
+    #map{
+      width: 100%;
+      height: 58vh;
+      min-height: 420px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,.95);
+      box-shadow: var(--shadow);
+    }
+    .mapNote{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Modal */
+    .modal{
+      position: fixed;
+      inset:0;
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      background: rgba(0,0,0,.35);
+      z-index: 2000;
+      padding: 14px;
+    }
+    .modal.show{display:flex}
+    .sheet{
+      width: min(720px, 100%);
+      border-radius: 22px;
+      background: rgba(255,255,255,.98);
+      border: 1px solid rgba(229,231,235,.95);
+      box-shadow: 0 25px 60px rgba(0,0,0,.25);
+      padding: 14px;
+    }
+    .sheetHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 8px;
+    }
+    .sheetHead b{font-size: 15px}
+    .xbtn{
+      border:0;
+      background: rgba(17,24,39,.06);
+      border:1px solid rgba(17,24,39,.10);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 900;
+      cursor:pointer;
+    }
+    .sheetGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    /* Video scan */
+    .scanBox{
+      border-radius: 18px;
+      border: 1px solid rgba(229,231,235,.95);
+      overflow:hidden;
+      background: rgba(0,0,0,.06);
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+    video{
+      width:100%;
+      height: 260px;
+      object-fit: cover;
+      display:block;
+      background: #111827;
+    }
+    .scanOverlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .scanFrame{
+      width: 82%;
+      height: 56%;
+      border: 3px solid rgba(250,204,21,.95);
+      border-radius: 16px;
+      box-shadow: 0 0 0 999px rgba(0,0,0,.12) inset;
+    }
+    .scanToast{
+      font-size: 12px;
+      color:#111827;
+      background: rgba(255,255,255,.92);
+      border:1px solid rgba(229,231,235,.95);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.12);
+      position:absolute;
+      left: 10px;
+      bottom: 10px;
+      display:none;
+    }
+    .scanToast.show{display:inline-flex}
+
+    /* Footer quick actions */
+    .footerBar{
+      position: fixed;
+      left:0; right:0;
+      bottom:0;
+      z-index: 1200;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(229,231,235,.80);
+    }
+    .footerInner{
+      max-width: 960px;
+      margin:0 auto;
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    .footerInner .left, .footerInner .right{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .kpi{
+      display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .kpi b{color:#111827}
+  </style>
 </head>
 
 <body>
-<div id="app">
+  <!-- Header -->
+  <div class="top">
+    <div class="topInner">
+      <div class="brand">
+        <div class="logo">OFA</div>
+        <div class="title">
+          <b>OFA 配達アプリ（Web）</b>
+          <small>①点呼 → ②集荷(SCAN) → ③リスト(検索/並替) → ④地図(ピン) → ⑤日報(CSV/PDF)</small>
+        </div>
+      </div>
 
-  <!-- ===== ログイン ===== -->
-  <section id="loginView" class="view">
-    <h1>OFA 配達アプリ</h1>
-    <p>電話番号でログイン</p>
-    <input id="loginPhone" type="tel" placeholder="09012345678">
-    <button id="loginBtn">SMS送信（仮）</button>
-  </section>
-
-  <!-- ===== ヘッダー ===== -->
-  <header id="mainHeader" class="hidden">
-    <div class="logo">OFA</div>
-    <div class="status">
-      <span id="gpsStatus" class="ng">GPS NG</span>
-      <span id="pinCount">PIN 0</span>
+      <div class="statusPills">
+        <div class="pill"><span class="dot" id="gpsDot"></span><b>GPS</b><span class="mini" id="gpsTxt">未</span></div>
+        <div class="pill"><span class="dot" id="pinDot"></span><b>ピン</b><span class="mini" id="pinTxt">0</span></div>
+        <div class="pill"><span class="dot" id="torchDot"></span><b>ライト</b><span class="mini" id="torchTxt">未</span></div>
+      </div>
     </div>
-  </header>
 
-  <!-- ===== タブ ===== -->
-  <nav id="tabs" class="hidden">
-    <button data-tab="scan">📷 SCAN</button>
-    <button data-tab="list">📋 LIST</button>
-    <button data-tab="map">🗺 MAP</button>
-    <button data-tab="tenko">✅ 点呼</button>
-  </nav>
+    <div class="tabs">
+      <div class="tabRow">
+        <div class="tabBtn active" data-tab="tenko">① Web点呼 <span class="badge" id="badgeTenko">!</span></div>
+        <div class="tabBtn" data-tab="pickup">② 集荷(SCAN) <span class="badge" id="badgePickup">0</span></div>
+        <div class="tabBtn" data-tab="list">③ リスト <span class="badge" id="badgeList">0</span></div>
+        <div class="tabBtn" data-tab="map">④ 地図 <span class="badge" id="badgeMap">0</span></div>
+        <div class="tabBtn" data-tab="report">⑤ 日報 <span class="badge" id="badgeReport">0</span></div>
+      </div>
+    </div>
+  </div>
 
-  <!-- ===== SCAN ===== -->
-  <section id="scan" class="view hidden">
-    <video id="camera" playsinline></video>
-    <button id="startScan">カメラ起動</button>
-    <button id="stopScan">停止</button>
+  <div class="wrap">
 
-    <h3>荷物情報</h3>
-    <input id="name" placeholder="お客様名">
-    <input id="zip" placeholder="郵便番号">
-    <input id="address" placeholder="住所">
-    <input id="tel" placeholder="電話番号">
-    <input id="waybill" placeholder="伝票番号">
+    <!-- ① TENKO -->
+    <section class="card" id="tab-tenko">
+      <h2>① Web点呼（＋日常点検）</h2>
+      <p>まずここで「点呼・日常点検」を完了 → その日の配達に進む。履歴は端末保存（CSV/PDF出力可）。</p>
 
-    <button id="addItem">リスト追加</button>
-  </section>
+      <div class="grid">
+        <div class="field">
+          <label>日付</label>
+          <input type="date" id="tenkoDate">
+        </div>
+        <div class="field">
+          <label>点呼時刻</label>
+          <input type="time" id="tenkoTime">
+        </div>
+        <div class="field">
+          <label>氏名（任意：会社側の管理用）</label>
+          <input type="text" id="tenkoName" placeholder="例：森下 洸">
+        </div>
+        <div class="field">
+          <label>体調</label>
+          <select id="tenkoCondition">
+            <option value="良好">良好</option>
+            <option value="普通">普通</option>
+            <option value="不安あり">不安あり</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>アルコール（自己申告）</label>
+          <select id="tenkoAlcohol">
+            <option value="問題なし">問題なし</option>
+            <option value="未実施">未実施</option>
+            <option value="NG">NG</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>運行可否</label>
+          <select id="tenkoGo">
+            <option value="運行可">運行可</option>
+            <option value="運行不可">運行不可</option>
+          </select>
+        </div>
+      </div>
 
-  <!-- ===== LIST ===== -->
-  <section id="list" class="view hidden">
-    <h2>配達リスト</h2>
-    <ul id="listArea"></ul>
-  </section>
+      <div class="card" style="margin-top:12px">
+        <h2 style="margin-bottom:6px">日常点検（チェック）</h2>
+        <div class="grid">
+          <label class="field" style="flex-direction:row; align-items:center; gap:10px">
+            <input type="checkbox" id="chkTire"> タイヤ（空気圧/亀裂）
+          </label>
+          <label class="field" style="flex-direction:row; align-items:center; gap:10px">
+            <input type="checkbox" id="chkBrake"> ブレーキ
+          </label>
+          <label class="field" style="flex-direction:row; align-items:center; gap:10px">
+            <input type="checkbox" id="chkLight"> 灯火類（ライト/ウィンカー）
+          </label>
+          <label class="field" style="flex-direction:row; align-items:center; gap:10px">
+            <input type="checkbox" id="chkOil"> オイル/水漏れ
+          </label>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>備考（任意）</label>
+          <textarea id="tenkoMemo" placeholder="例：右後輪空気圧注意、など"></textarea>
+        </div>
 
-  <!-- ===== MAP ===== -->
-  <section id="map" class="view hidden">
-    <div id="mapArea"></div>
-  </section>
+        <div class="btnRow">
+          <button class="btn primary" id="btnTenkoSave">点呼を保存（本日スタート）</button>
+          <button class="btn gray" id="btnTenkoGoPickup">② 集荷へ</button>
+        </div>
+        <div class="hint">※点呼を保存すると、日報に点呼情報が自動で入ります。</div>
+      </div>
+    </section>
 
-  <!-- ===== 点呼 ===== -->
-  <section id="tenko" class="view hidden">
-    <h2>点呼</h2>
-    <label><input type="checkbox"> ブレーキ</label>
-    <label><input type="checkbox"> ライト</label>
-    <label><input type="checkbox"> タイヤ</label>
-    <textarea placeholder="備考"></textarea>
-  </section>
+    <!-- ② PICKUP / SCAN -->
+    <section class="card" id="tab-pickup" style="display:none">
+      <h2>② 集荷（SCAN → 必須入力 → 自動ピン / ピン修正）</h2>
+      <p>名前・郵便番号・住所・電話番号は必須。郵便番号 → 住所は自動補完（できない時は手入力）。</p>
 
-</div>
+      <div class="scanBox">
+        <video id="video" playsinline muted></video>
+        <div class="scanOverlay"><div class="scanFrame"></div></div>
+        <div class="scanToast" id="scanToast">読み取り：-</div>
+      </div>
 
-<script src="app.js"></script>
+      <div class="btnRow" style="margin-top:10px">
+        <button class="btn primary" id="btnStartScan">📷 SCAN開始（バーコード）</button>
+        <button class="btn yellow" id="btnTorch">🔦 ライト</button>
+        <button class="btn gray" id="btnStopScan">停止</button>
+        <button class="btn gray" id="btnOcr">🔤 OCR（文字読み取り）</button>
+      </div>
+      <div class="hint">
+        ・バーコード対応端末は自動で番号取得。<br/>
+        ・バーコード不可/手紙/宛名だけ等は「OCR」→結果を貼り付け → 必須入力で登録。<br/>
+        ・ライトは端末対応時のみON（未対応端末はON不可）。
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2 style="margin-bottom:6px">登録（必要最低限）</h2>
+
+        <div class="grid">
+          <div class="field">
+            <label>荷物種別</label>
+            <select id="pkgType">
+              <option value="宅配">宅配</option>
+              <option value="手紙">手紙</option>
+              <option value="メール便">メール便</option>
+              <option value="ポスティング">ポスティング</option>
+              <option value="食品">食品</option>
+              <option value="医療">医療</option>
+              <option value="建材">建材</option>
+              <option value="アパレル">アパレル</option>
+              <option value="雑貨">雑貨</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>伝票番号（バーコード/手入力）</label>
+            <input id="trackNo" inputmode="numeric" placeholder="例：9501-0001-3413（なければ空でもOK）">
+          </div>
+
+          <div class="field">
+            <label>お名前<span class="req">必須</span></label>
+            <input id="custName" placeholder="例：千田 篤司">
+          </div>
+
+          <div class="field">
+            <label>電話番号<span class="req">必須</span></label>
+            <input id="phone" inputmode="tel" placeholder="例：09012345678">
+          </div>
+
+          <div class="field">
+            <label>郵便番号（7桁）<span class="req">必須</span></label>
+            <input id="zip" inputmode="numeric" placeholder="例：1234567（ハイフン無し）">
+          </div>
+
+          <div class="field">
+            <label>住所（自動補完→微修正OK）<span class="req">必須</span></label>
+            <input id="address" placeholder="例：大阪市大正区平尾4丁目17-3">
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <label>建物名・部屋番号（任意）</label>
+            <input id="building" placeholder="例：川忠ビル 203">
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <label>メモ（任意：置き配/受渡など）</label>
+            <input id="memo" placeholder="例：オートロック無し／宅配ボックス無し">
+          </div>
+        </div>
+
+        <div class="btnRow" style="margin-top:10px">
+          <button class="btn yellow" id="btnZipToAddr">📮 郵便番号→住所</button>
+          <button class="btn primary" id="btnAutoPin">📍 自動ピン（住所→座標）</button>
+          <button class="btn gray" id="btnManualPin">🧷 ピン修正（手動）</button>
+          <button class="btn red" id="btnAddPkg">＋ 登録（リストへ）</button>
+        </div>
+
+        <div class="hint">
+          ✅ 現場は「伝票番号 or 住所」で荷物を探す → なので<strong>住所・名前・電話・郵便番号は必須</strong>。<br/>
+          ✅ ピンが立たない時は「ピン修正」でドラッグして確定できます。
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ LIST -->
+    <section class="card" id="tab-list" style="display:none">
+      <h2>③ リスト（検索 / 並び替え / 近い順）</h2>
+
+      <div class="listTools">
+        <div class="left">
+          <input id="search" placeholder="検索：伝票/名前/住所/電話/種別" style="min-width: 240px">
+          <span class="chip active" data-filter="all">全て</span>
+          <span class="chip" data-filter="undelivered">未配達</span>
+          <span class="chip" data-filter="done">配達完了</span>
+          <span class="chip" data-filter="absent">不在</span>
+        </div>
+        <div class="right">
+          <button class="btn small gray" id="btnSortNear">📍近い順に並び替え</button>
+          <button class="btn small gray" id="btnGoMap">④地図へ</button>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-bottom:10px">
+        ・順番入替：各カードの「≡」をドラッグ（スマホOK）。<br/>
+        ・配達中：家で荷物スキャン → 該当を一発検索 → 間違い防止。
+      </div>
+
+      <div class="items" id="items"></div>
+
+      <div class="btnRow" style="margin-top:12px">
+        <button class="btn gray" id="btnClearDone">配達完了だけ削除</button>
+        <button class="btn gray" id="btnClearAll">全削除</button>
+      </div>
+    </section>
+
+    <!-- ④ MAP -->
+    <section class="card" id="tab-map" style="display:none">
+      <h2>④ 地図（軽い / 現在地周辺 / ピン大量表示）</h2>
+
+      <div class="btnRow" style="margin-bottom:10px">
+        <button class="btn primary" id="btnMapMyPos">🎯 現在地へ</button>
+        <button class="btn gray" id="btnRefreshPins">🔄 ピン再描画</button>
+        <button class="btn gray" id="btnMapGoList">③リストへ</button>
+      </div>
+
+      <div id="map"></div>
+
+      <div class="mapNote">
+        <div>✅ ピンをタップ → 詳細シート → <b>完了/不在</b> を即打ち</div>
+        <div>表示が重い時：ズームを少し上げてください（ピン100件でもOK設計）</div>
+      </div>
+    </section>
+
+    <!-- ⑤ REPORT -->
+    <section class="card" id="tab-report" style="display:none">
+      <h2>⑤ 日報（CSV / PDF）</h2>
+      <p>点呼＋本日の配達結果をまとめて出力。</p>
+
+      <div class="grid">
+        <div class="field">
+          <label>対象日</label>
+          <input type="date" id="repDate">
+        </div>
+        <div class="field">
+          <label>集計</label>
+          <input type="text" id="repSummary" readonly>
+        </div>
+      </div>
+
+      <div class="btnRow" style="margin-top:10px">
+        <button class="btn primary" id="btnExportCsv">CSV出力</button>
+        <button class="btn yellow" id="btnExportPdf">PDF出力（A4）</button>
+        <button class="btn gray" id="btnRecalc">再集計</button>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2 style="margin-bottom:6px">メモ（会社側）</h2>
+        <textarea id="repMemo" placeholder="例：注意事項／クレーム／置き配トラブルなど"></textarea>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="footerBar">
+    <div class="footerInner">
+      <div class="left kpi">
+        <span>未配達 <b id="kpiUndel">0</b></span>
+        <span>完了 <b id="kpiDone">0</b></span>
+        <span>不在 <b id="kpiAbs">0</b></span>
+      </div>
+      <div class="right">
+        <button class="btn small yellow" id="quickScan">📷 スキャン</button>
+        <button class="btn small primary" id="quickList">📋 リスト</button>
+        <button class="btn small gray" id="quickMap">🗺 地図</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal sheet (pin detail / manual pin) -->
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <div class="sheetHead">
+        <b id="modalTitle">詳細</b>
+        <button class="xbtn" id="modalClose">閉じる</button>
+      </div>
+      <div class="sheetGrid" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Libs -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <script>
+    /**********************
+     * Storage / Model
+     **********************/
+    const LS_KEY = "ofa_delivery_app_v2";
+    const LS_TENKO = "ofa_delivery_tenko_v2";
+
+    function loadState(){
+      try{
+        return JSON.parse(localStorage.getItem(LS_KEY)) || { items: [] };
+      }catch(e){
+        return { items: [] };
+      }
+    }
+    function saveState(s){
+      localStorage.setItem(LS_KEY, JSON.stringify(s));
+    }
+
+    function loadTenko(){
+      try{
+        return JSON.parse(localStorage.getItem(LS_TENKO)) || null;
+      }catch(e){ return null; }
+    }
+    function saveTenko(t){
+      localStorage.setItem(LS_TENKO, JSON.stringify(t));
+    }
+
+    let state = loadState(); // {items:[...]}
+    // item schema:
+    // {id, type, trackNo, name, phone, zip, address, building, memo, lat, lng, status, createdAt, deliveredAt, distanceKm}
+
+    /**********************
+     * Utils
+     **********************/
+    const $ = (q)=>document.querySelector(q);
+    const $$ = (q)=>[...document.querySelectorAll(q)];
+
+    function uid(){
+      return Math.random().toString(36).slice(2,9) + "-" + Date.now().toString(36);
+    }
+
+    function nowISO(){
+      const d = new Date();
+      const pad = (n)=>String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function todayYMD(){
+      const d = new Date();
+      const pad = (n)=>String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2){
+      const R = 6371;
+      const toRad = (x)=>x*Math.PI/180;
+      const dLat = toRad(lat2-lat1);
+      const dLon = toRad(lon2-lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(a));
+    }
+
+    function sanitizeZip(z){
+      return (z||"").replace(/[^0-9]/g,"").slice(0,7);
+    }
+    function sanitizePhone(p){
+      return (p||"").replace(/[^0-9]/g,"").slice(0,13);
+    }
+
+    function toastScan(msg){
+      const t = $("#scanToast");
+      t.textContent = `読み取り：${msg}`;
+      t.classList.add("show");
+      clearTimeout(toastScan._tm);
+      toastScan._tm = setTimeout(()=>t.classList.remove("show"), 1200);
+    }
+
+    /**********************
+     * Tabs
+     **********************/
+    function showTab(name){
+      $$(".tabBtn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+      ["tenko","pickup","list","map","report"].forEach(t=>{
+        $(`#tab-${t}`).style.display = (t===name) ? "block" : "none";
+      });
+      if(name==="map"){
+        setTimeout(()=>{
+          if(map){ map.invalidateSize(); }
+          renderMapPins();
+        }, 120);
+      }
+      if(name==="report"){ recalcReport(); }
+    }
+    $$(".tabBtn").forEach(b=>b.addEventListener("click", ()=>showTab(b.dataset.tab)));
+
+    // quick buttons
+    $("#quickScan").addEventListener("click", ()=>showTab("pickup"));
+    $("#quickList").addEventListener("click", ()=>showTab("list"));
+    $("#quickMap").addEventListener("click", ()=>showTab("map"));
+
+    /**********************
+     * GPS
+     **********************/
+    let myPos = { lat: null, lng: null, ok: false };
+    let watchId = null;
+
+    function setGpsUI(ok){
+      $("#gpsDot").className = "dot " + (ok ? "ok":"ng");
+      $("#gpsTxt").textContent = ok ? "OK" : "NG";
+    }
+
+    async function startGPS(){
+      if(!navigator.geolocation){
+        setGpsUI(false);
+        return;
+      }
+      return new Promise((resolve)=>{
+        watchId = navigator.geolocation.watchPosition(
+          (pos)=>{
+            myPos.lat = pos.coords.latitude;
+            myPos.lng = pos.coords.longitude;
+            myPos.ok = true;
+            setGpsUI(true);
+            updateDistances();
+            resolve(true);
+          },
+          (err)=>{
+            myPos.ok = false;
+            setGpsUI(false);
+            resolve(false);
+          },
+          { enableHighAccuracy: true, maximumAge: 8000, timeout: 8000 }
+        );
+      });
+    }
+
+    /**********************
+     * Tenko
+     **********************/
+    function initTenkoForm(){
+      $("#tenkoDate").value = todayYMD();
+      const d = new Date();
+      const pad = (n)=>String(n).padStart(2,"0");
+      $("#tenkoTime").value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+      const t = loadTenko();
+      if(t){
+        $("#tenkoDate").value = t.date || todayYMD();
+        $("#tenkoTime").value = (t.time || $("#tenkoTime").value);
+        $("#tenkoName").value = t.name || "";
+        $("#tenkoCondition").value = t.condition || "良好";
+        $("#tenkoAlcohol").value = t.alcohol || "問題なし";
+        $("#tenkoGo").value = t.go || "運行可";
+        $("#chkTire").checked = !!t.chkTire;
+        $("#chkBrake").checked = !!t.chkBrake;
+        $("#chkLight").checked = !!t.chkLight;
+        $("#chkOil").checked = !!t.chkOil;
+        $("#tenkoMemo").value = t.memo || "";
+        $("#badgeTenko").textContent = "OK";
+      }else{
+        $("#badgeTenko").textContent = "!";
+      }
+    }
+
+    $("#btnTenkoSave").addEventListener("click", ()=>{
+      const t = {
+        date: $("#tenkoDate").value || todayYMD(),
+        time: $("#tenkoTime").value || "",
+        name: $("#tenkoName").value.trim(),
+        condition: $("#tenkoCondition").value,
+        alcohol: $("#tenkoAlcohol").value,
+        go: $("#tenkoGo").value,
+        chkTire: $("#chkTire").checked,
+        chkBrake: $("#chkBrake").checked,
+        chkLight: $("#chkLight").checked,
+        chkOil: $("#chkOil").checked,
+        memo: $("#tenkoMemo").value.trim(),
+        savedAt: nowISO(),
+      };
+      saveTenko(t);
+      $("#badgeTenko").textContent = "OK";
+      alert("点呼を保存しました。②集荷へ進めます。");
+    });
+
+    $("#btnTenkoGoPickup").addEventListener("click", ()=>showTab("pickup"));
+
+    /**********************
+     * Zip -> Address (ZipCloud)
+     **********************/
+    async function zipToAddress(zip){
+      // ZipCloud (CORS works in many environments; if blocked, user can type)
+      const url = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${encodeURIComponent(zip)}`;
+      const res = await fetch(url);
+      const j = await res.json();
+      if(j && j.results && j.results[0]){
+        const r = j.results[0];
+        return `${r.address1}${r.address2}${r.address3}`.replace(/\s+/g,"").trim();
+      }
+      return null;
+    }
+
+    $("#btnZipToAddr").addEventListener("click", async ()=>{
+      const z = sanitizeZip($("#zip").value);
+      $("#zip").value = z;
+      if(z.length!==7){
+        alert("郵便番号は7桁で入力してください（ハイフン無し）");
+        return;
+      }
+      try{
+        const addr = await zipToAddress(z);
+        if(addr){
+          $("#address").value = addr;
+        }else{
+          alert("住所自動取得できませんでした。住所を手入力してください。");
+        }
+      }catch(e){
+        alert("住所自動取得に失敗しました（通信/CORSの可能性）。住所を手入力してください。");
+      }
+    });
+
+    $("#zip").addEventListener("blur", async ()=>{
+      const z = sanitizeZip($("#zip").value);
+      $("#zip").value = z;
+      if(z.length===7 && !$("#address").value.trim()){
+        try{
+          const addr = await zipToAddress(z);
+          if(addr) $("#address").value = addr;
+        }catch(e){}
+      }
+    });
+
+    $("#phone").addEventListener("input", ()=>{
+      $("#phone").value = sanitizePhone($("#phone").value);
+    });
+
+    /**********************
+     * Geocoding (Nominatim)
+     **********************/
+    async function geocodeAddress(addr){
+      // Nominatim: rate limited. For real ops, later replace with your own server or paid geocoder.
+      const q = encodeURIComponent(addr);
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`;
+      const res = await fetch(url, { headers: { "Accept": "application/json" }});
+      const j = await res.json();
+      if(j && j[0]){
+        return { lat: parseFloat(j[0].lat), lng: parseFloat(j[0].lon) };
+      }
+      return null;
+    }
+
+    $("#btnAutoPin").addEventListener("click", async ()=>{
+      const addr = ($("#address").value || "").trim();
+      const bld = ($("#building").value || "").trim();
+      if(!addr){
+        alert("住所を入力してください。");
+        return;
+      }
+      try{
+        const full = bld ? `${addr} ${bld}` : addr;
+        const p = await geocodeAddress(full);
+        if(!p){
+          alert("自動ピンできませんでした。『ピン修正』で手動設定してください。");
+          return;
+        }
+        // store in temp fields
+        $("#btnAutoPin").dataset.lat = p.lat;
+        $("#btnAutoPin").dataset.lng = p.lng;
+        $("#pinDot").className = "dot ok";
+        $("#pinTxt").textContent = "OK(仮)";
+        alert(`ピン取得OK：${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}\n※登録ボタンで確定します`);
+      }catch(e){
+        alert("自動ピンに失敗しました。『ピン修正』で手動設定してください。");
+      }
+    });
+
+    /**********************
+     * Manual pin adjust (mini map)
+     **********************/
+    let manualMap = null;
+    let manualMarker = null;
+
+    function openModal(title, html){
+      $("#modalTitle").textContent = title;
+      $("#modalBody").innerHTML = html;
+      $("#modal").classList.add("show");
+    }
+    function closeModal(){
+      $("#modal").classList.remove("show");
+      $("#modalBody").innerHTML = "";
+      // destroy manual map to avoid heavy memory
+      if(manualMap){
+        manualMap.remove();
+        manualMap = null;
+        manualMarker = null;
+      }
+    }
+    $("#modalClose").addEventListener("click", closeModal);
+    $("#modal").addEventListener("click", (e)=>{
+      if(e.target.id==="modal") closeModal();
+    });
+
+    $("#btnManualPin").addEventListener("click", async ()=>{
+      // open modal with draggable marker; center = current gps or geocode
+      let center = null;
+
+      const addr = ($("#address").value || "").trim();
+      const bld = ($("#building").value || "").trim();
+      if(myPos.ok) center = { lat: myPos.lat, lng: myPos.lng };
+
+      if(!center && addr){
+        try{
+          const p = await geocodeAddress(bld ? `${addr} ${bld}` : addr);
+          if(p) center = p;
+        }catch(e){}
+      }
+      if(!center) center = { lat: 34.701909, lng: 135.494977 }; // fallback Osaka-ish
+
+      openModal("ピン修正（ドラッグで合わせて確定）", `
+        <div class="card" style="margin:0">
+          <div id="manualMap" style="width:100%; height: 44vh; min-height: 340px; border-radius:18px; overflow:hidden; border:1px solid rgba(229,231,235,.95)"></div>
+          <div class="btnRow" style="margin-top:10px">
+            <button class="btn primary" id="btnPinOk">この位置で確定</button>
+            <button class="btn gray" id="btnPinMy">現在地へ</button>
+          </div>
+          <div class="hint">※ピンをドラッグして「建物入口」付近に合わせてください。</div>
+        </div>
+      `);
+
+      setTimeout(()=>{
+        manualMap = L.map("manualMap", { preferCanvas:true }).setView([center.lat, center.lng], 16);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19
+        }).addTo(manualMap);
+
+        manualMarker = L.marker([center.lat, center.lng], { draggable:true }).addTo(manualMap);
+        manualMarker.bindPopup("ここに合わせる").openPopup();
+
+        $("#btnPinOk").addEventListener("click", ()=>{
+          const p = manualMarker.getLatLng();
+          $("#btnAutoPin").dataset.lat = p.lat;
+          $("#btnAutoPin").dataset.lng = p.lng;
+          $("#pinDot").className = "dot ok";
+          $("#pinTxt").textContent = "OK(仮)";
+          closeModal();
+          alert("ピンを確定しました。次に『登録』を押すと反映されます。");
+        });
+
+        $("#btnPinMy").addEventListener("click", ()=>{
+          if(myPos.ok){
+            manualMap.setView([myPos.lat, myPos.lng], 17);
+            manualMarker.setLatLng([myPos.lat, myPos.lng]);
+          }else{
+            alert("GPSが取得できていません。位置情報を許可してください。");
+          }
+        });
+
+      }, 80);
+    });
+
+    /**********************
+     * Scan (BarcodeDetector)
+     **********************/
+    let stream = null;
+    let scanning = false;
+    let detector = null;
+    let torchOn = false;
+    let currentTrack = null;
+
+    function setTorchUI(){
+      $("#torchDot").className = "dot " + (torchOn ? "ok":"warn");
+      $("#torchTxt").textContent = torchOn ? "ON" : "OFF/未";
+    }
+
+    async function startCamera(){
+      if(stream) return stream;
+      const constraintsBase = {
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraintsBase);
+      const video = $("#video");
+      video.srcObject = stream;
+      await video.play();
+
+      const [track] = stream.getVideoTracks();
+      currentTrack = track;
+      // check torch capability
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      const torchCap = !!caps.torch;
+      $("#torchDot").className = "dot " + (torchCap ? "warn":"ng");
+      $("#torchTxt").textContent = torchCap ? "OFF" : "未対応";
+      return stream;
+    }
+
+    async function stopCamera(){
+      scanning = false;
+      if(stream){
+        stream.getTracks().forEach(t=>t.stop());
+        stream = null;
+        currentTrack = null;
+      }
+    }
+
+    async function toggleTorch(){
+      if(!currentTrack || !currentTrack.applyConstraints){
+        alert("ライト制御はこの端末/ブラウザでは未対応です。");
+        return;
+      }
+      const caps = currentTrack.getCapabilities ? currentTrack.getCapabilities() : {};
+      if(!caps.torch){
+        alert("ライト制御は未対応です（iPhone含めWeb仕様で不可の場合あり）。");
+        return;
+      }
+      torchOn = !torchOn;
+      await currentTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+      setTorchUI();
+    }
+
+    $("#btnTorch").addEventListener("click", async ()=>{
+      try{ await toggleTorch(); }catch(e){
+        torchOn = false; setTorchUI();
+        alert("ライトONに失敗しました。端末側で許可/対応をご確認ください。");
+      }
+    });
+
+    $("#btnStartScan").addEventListener("click", async ()=>{
+      try{
+        await startCamera();
+      }catch(e){
+        alert("カメラ起動に失敗しました。ブラウザのカメラ許可/HTTPSを確認してください。");
+        return;
+      }
+
+      if(!("BarcodeDetector" in window)){
+        toastScan("BarcodeDetector非対応 → 手入力/OCRへ");
+        alert("この端末はバーコード自動読み取りに非対応です。\n手入力 or OCRをご利用ください。");
+        return;
+      }
+
+      detector = detector || new BarcodeDetector({ formats: ["qr_code","ean_13","ean_8","code_128","code_39","itf","upc_a","upc_e","codabar","data_matrix"]});
+      scanning = true;
+      scanLoop();
+    });
+
+    $("#btnStopScan").addEventListener("click", async ()=>{
+      await stopCamera();
+      toastScan("停止");
+    });
+
+    async function scanLoop(){
+      if(!scanning) return;
+      const video = $("#video");
+      try{
+        const barcodes = await detector.detect(video);
+        if(barcodes && barcodes[0]){
+          const v = (barcodes[0].rawValue || "").trim();
+          if(v){
+            $("#trackNo").value = v;
+            toastScan(v);
+            // continue scanning to allow rapid input, but throttle a bit
+            await new Promise(r=>setTimeout(r, 700));
+          }
+        }
+      }catch(e){}
+      requestAnimationFrame(scanLoop);
+    }
+
+    /**********************
+     * OCR (Tesseract.js) on-demand
+     **********************/
+    async function ensureTesseract(){
+      if(window.Tesseract) return true;
+      // load only when user taps OCR (heavy)
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      document.head.appendChild(s);
+      await new Promise((res, rej)=>{
+        s.onload = res; s.onerror = rej;
+      });
+      return true;
+    }
+
+    async function ocrFromCameraSnapshot(){
+      // take snapshot from video into canvas, then OCR (Japanese is heavy; default eng)
+      const video = $("#video");
+      if(!video || video.readyState < 2){
+        alert("OCRの前にカメラを起動してください（SCAN開始 or 先にカメラ許可）。");
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/png");
+
+      await ensureTesseract();
+      toastScan("OCR中…");
+      // NOTE: Japanese OCR is heavy; use "eng" for speed. Users can paste results.
+      const { data } = await Tesseract.recognize(dataUrl, "eng", {
+        logger: (m)=>{}
+      });
+      const text = (data && data.text) ? data.text : "";
+      openModal("OCR結果（コピーして入力へ）", `
+        <div class="card" style="margin:0">
+          <p style="margin:0 0 10px">※日本語OCRは重くなりやすいので、まずは英数中心（伝票番号/電話/郵便）を狙います。</p>
+          <textarea id="ocrText" style="min-height:160px">${text.trim()}</textarea>
+          <div class="btnRow" style="margin-top:10px">
+            <button class="btn primary" id="btnOcrToTrack">伝票番号へ貼付</button>
+            <button class="btn yellow" id="btnOcrToPhone">電話へ貼付</button>
+            <button class="btn gray" id="btnOcrClose">閉じる</button>
+          </div>
+        </div>
+      `);
+
+      $("#btnOcrToTrack").addEventListener("click", ()=>{
+        const t = $("#ocrText").value || "";
+        const m = t.match(/[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}/) || t.match(/[0-9]{10,14}/);
+        if(m) $("#trackNo").value = m[0].replace(/\s+/g,"");
+        closeModal();
+      });
+      $("#btnOcrToPhone").addEventListener("click", ()=>{
+        const t = $("#ocrText").value || "";
+        const m = t.match(/0\d{9,10}/);
+        if(m) $("#phone").value = m[0];
+        closeModal();
+      });
+      $("#btnOcrClose").addEventListener("click", closeModal);
+    }
+
+    $("#btnOcr").addEventListener("click", async ()=>{
+      try{
+        // Ensure camera is running (for snapshot)
+        await startCamera();
+        await ocrFromCameraSnapshot();
+      }catch(e){
+        alert("OCRに失敗しました。端末性能/通信状況をご確認ください。");
+      }
+    });
+
+    /**********************
+     * Add Package (Required fields)
+     **********************/
+    function requiredPickupOK(){
+      const name = $("#custName").value.trim();
+      const phone = sanitizePhone($("#phone").value);
+      const zip = sanitizeZip($("#zip").value);
+      const addr = $("#address").value.trim();
+      $("#phone").value = phone;
+      $("#zip").value = zip;
+
+      if(!name) return "お名前が未入力です";
+      if(phone.length < 10) return "電話番号が不正です";
+      if(zip.length !== 7) return "郵便番号が7桁ではありません";
+      if(!addr) return "住所が未入力です";
+      return null;
+    }
+
+    $("#btnAddPkg").addEventListener("click", async ()=>{
+      const err = requiredPickupOK();
+      if(err){ alert(err); return; }
+
+      const type = $("#pkgType").value;
+      const trackNo = ($("#trackNo").value || "").trim();
+      const name = $("#custName").value.trim();
+      const phone = sanitizePhone($("#phone").value);
+      const zip = sanitizeZip($("#zip").value);
+      const address = $("#address").value.trim();
+      const building = ($("#building").value || "").trim();
+      const memo = ($("#memo").value || "").trim();
+
+      // lat/lng from auto pin dataset if exists; else try geocode quickly; else null
+      let lat = null, lng = null;
+      const dlat = $("#btnAutoPin").dataset.lat;
+      const dlng = $("#btnAutoPin").dataset.lng;
+
+      if(dlat && dlng){
+        lat = parseFloat(dlat); lng = parseFloat(dlng);
+      }else{
+        try{
+          const p = await geocodeAddress(building ? `${address} ${building}` : address);
+          if(p){ lat = p.lat; lng = p.lng; }
+        }catch(e){}
+      }
+
+      const item = {
+        id: uid(),
+        type,
+        trackNo,
+        name,
+        phone,
+        zip,
+        address,
+        building,
+        memo,
+        lat, lng,
+        status: "未配達",
+        createdAt: nowISO(),
+        deliveredAt: "",
+        distanceKm: null
+      };
+
+      state.items.unshift(item);
+      saveState(state);
+
+      // clear quick fields for fast 100件入力
+      $("#trackNo").value = "";
+      $("#custName").value = "";
+      $("#phone").value = "";
+      $("#zip").value = "";
+      $("#address").value = "";
+      $("#building").value = "";
+      $("#memo").value = "";
+      delete $("#btnAutoPin").dataset.lat;
+      delete $("#btnAutoPin").dataset.lng;
+
+      renderAll();
+      showTab("list");
+    });
+
+    /**********************
+     * List rendering + Sortable
+     **********************/
+    let listSortable = null;
+    let currentFilter = "all";
+
+    function filterItems(items){
+      const q = ($("#search").value || "").trim().toLowerCase();
+      let out = items;
+
+      if(currentFilter==="undelivered") out = out.filter(x=>x.status==="未配達");
+      if(currentFilter==="done") out = out.filter(x=>x.status==="配達完了");
+      if(currentFilter==="absent") out = out.filter(x=>x.status==="不在");
+
+      if(q){
+        out = out.filter(x=>{
+          const s = `${x.trackNo} ${x.name} ${x.phone} ${x.zip} ${x.address} ${x.building} ${x.type} ${x.memo}`.toLowerCase();
+          return s.includes(q);
+        });
+      }
+      return out;
+    }
+
+    function statusTagHTML(item){
+      if(item.status==="配達完了") return `<span class="tag status">配達完了</span>`;
+      if(item.status==="不在") return `<span class="tag status ng">不在</span>`;
+      return `<span class="tag status" style="background:rgba(59,130,246,.10);border-color:rgba(59,130,246,.22);color:var(--b)">未配達</span>`;
+    }
+
+    function itemCardHTML(item, idx){
+      const dist = (myPos.ok && item.lat!=null && item.lng!=null)
+        ? `${(item.distanceKm ?? haversineKm(myPos.lat,myPos.lng,item.lat,item.lng)).toFixed(2)}km`
+        : (item.lat!=null ? "距離-":"距離-");
+
+      return `
+        <div class="item" data-id="${item.id}">
+          <div class="idBadge">${idx+1}</div>
+
+          <div class="itemLeft">
+            <div class="itemTop">
+              <div class="meta">
+                <b>${(item.trackNo || "（伝票なし）")}　${escapeHtml(item.name)}</b>
+                <small>${escapeHtml(item.address)} ${escapeHtml(item.building || "")}</small>
+                <small>☎ ${escapeHtml(item.phone)}　📮 ${escapeHtml(item.zip)}　・距離 ${dist}</small>
+              </div>
+              <div class="dragHandle" title="ドラッグで順番変更">≡</div>
+            </div>
+            <div class="tags">
+              <span class="tag type">📦 ${escapeHtml(item.type)}</span>
+              ${statusTagHTML(item)}
+              ${item.memo ? `<span class="tag">📝 ${escapeHtml(item.memo)}</span>` : ``}
+            </div>
+
+            <div class="btnRow" style="margin-top:10px">
+              <button class="btn small primary" data-act="nav">🧭 ナビ</button>
+              <button class="btn small gray" data-act="copy">住所コピー</button>
+              <button class="btn small yellow" data-act="done">完了</button>
+              <button class="btn small red" data-act="absent">不在</button>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn small gray" data-act="scanCheck">📷 スキャン照合</button>
+            <button class="btn small gray" data-act="pinFix">📍 ピン修正</button>
+            <button class="btn small gray" data-act="del">🗑</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderList(){
+      const box = $("#items");
+      const items = filterItems(state.items);
+
+      box.innerHTML = items.map((it,i)=>itemCardHTML(it,i)).join("");
+
+      // bind actions
+      box.querySelectorAll(".item").forEach(el=>{
+        const id = el.dataset.id;
+        el.querySelectorAll("button").forEach(btn=>{
+          const act = btn.dataset.act;
+          if(!act) return;
+          btn.addEventListener("click", ()=>handleItemAction(id, act));
+        });
+      });
+
+      // Sortable (order change)
+      if(listSortable) listSortable.destroy();
+      listSortable = new Sortable(box, {
+        handle: ".dragHandle",
+        animation: 150,
+        onEnd: ()=>{
+          // rebuild order based on DOM
+          const ids = [...box.querySelectorAll(".item")].map(x=>x.dataset.id);
+          const map = new Map(state.items.map(x=>[x.id,x]));
+          state.items = ids.map(id=>map.get(id)).filter(Boolean);
+          saveState(state);
+          renderAll(true);
+        }
+      });
+    }
+
+    function escapeHtml(s){
+      return (s||"").replace(/[&<>"']/g, (c)=>({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    async function handleItemAction(id, act){
+      const item = state.items.find(x=>x.id===id);
+      if(!item) return;
+
+      if(act==="del"){
+        if(confirm("この荷物を削除しますか？")){
+          state.items = state.items.filter(x=>x.id!==id);
+          saveState(state);
+          renderAll();
+          renderMapPins();
+        }
+        return;
+      }
+
+      if(act==="copy"){
+        const txt = `${item.address} ${item.building||""}`.trim();
+        await navigator.clipboard.writeText(txt);
+        alert("住所をコピーしました");
+        return;
+      }
+
+      if(act==="nav"){
+        // open Google Maps navigation (address or latlng)
+        const dest = (item.lat!=null && item.lng!=null)
+          ? `${item.lat},${item.lng}`
+          : encodeURIComponent(`${item.address} ${item.building||""}`.trim());
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+        window.open(url, "_blank");
+        return;
+      }
+
+      if(act==="done"){
+        item.status = "配達完了";
+        item.deliveredAt = nowISO();
+        saveState(state);
+        renderAll();
+        renderMapPins();
+        return;
+      }
+
+      if(act==="absent"){
+        item.status = "不在";
+        item.deliveredAt = nowISO();
+        saveState(state);
+        renderAll();
+        renderMapPins();
+        return;
+      }
+
+      if(act==="scanCheck"){
+        // For safety: scan and compare with trackNo, or quick search
+        openModal("スキャン照合（間違い防止）", `
+          <div class="card" style="margin:0">
+            <p style="margin:0 0 10px">この荷物：<b>${escapeHtml(item.trackNo||"（伝票なし）")}</b></p>
+            <div class="btnRow">
+              <button class="btn primary" id="goPickupScan">📷 スキャン画面へ</button>
+              <button class="btn gray" id="goSearchThis">🔎 この荷物を検索</button>
+            </div>
+            <p class="hint">※スキャンして伝票番号が一致するか確認。伝票なしは住所/名前で確認。</p>
+          </div>
+        `);
+        $("#goPickupScan").addEventListener("click", ()=>{
+          closeModal();
+          showTab("pickup");
+        });
+        $("#goSearchThis").addEventListener("click", ()=>{
+          closeModal();
+          showTab("list");
+          $("#search").value = item.trackNo || item.address || item.name;
+          renderList();
+        });
+        return;
+      }
+
+      if(act==="pinFix"){
+        // open manual pin for that item
+        openModal("ピン修正（ドラッグして確定）", `
+          <div class="card" style="margin:0">
+            <p style="margin:0 0 10px"><b>${escapeHtml(item.name)}</b> / ${escapeHtml(item.address)}</p>
+            <div id="manualMap" style="width:100%; height: 44vh; min-height: 340px; border-radius:18px; overflow:hidden; border:1px solid rgba(229,231,235,.95)"></div>
+            <div class="btnRow" style="margin-top:10px">
+              <button class="btn primary" id="btnPinSaveItem">この位置で保存</button>
+              <button class="btn gray" id="btnPinMyItem">現在地へ</button>
+            </div>
+          </div>
+        `);
+
+        const center = (item.lat!=null && item.lng!=null)
+          ? {lat:item.lat, lng:item.lng}
+          : (myPos.ok ? {lat:myPos.lat, lng:myPos.lng} : {lat:34.701909, lng:135.494977});
+
+        setTimeout(()=>{
+          manualMap = L.map("manualMap", { preferCanvas:true }).setView([center.lat, center.lng], 16);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:19 }).addTo(manualMap);
+          manualMarker = L.marker([center.lat, center.lng], { draggable:true }).addTo(manualMap);
+
+          $("#btnPinSaveItem").addEventListener("click", ()=>{
+            const p = manualMarker.getLatLng();
+            item.lat = p.lat;
+            item.lng = p.lng;
+            saveState(state);
+            closeModal();
+            renderAll();
+            renderMapPins();
+            alert("ピンを保存しました。");
+          });
+
+          $("#btnPinMyItem").addEventListener("click", ()=>{
+            if(myPos.ok){
+              manualMap.setView([myPos.lat, myPos.lng], 17);
+              manualMarker.setLatLng([myPos.lat, myPos.lng]);
+            }else{
+              alert("GPSが取得できていません。位置情報を許可してください。");
+            }
+          });
+
+        }, 80);
+
+        return;
+      }
+    }
+
+    $("#search").addEventListener("input", ()=>renderList());
+
+    $$(".chip").forEach(c=>{
+      c.addEventListener("click", ()=>{
+        $$(".chip").forEach(x=>x.classList.remove("active"));
+        c.classList.add("active");
+        currentFilter = c.dataset.filter;
+        renderList();
+      });
+    });
+
+    $("#btnSortNear").addEventListener("click", ()=>{
+      if(!myPos.ok){
+        alert("GPSが取れていません。位置情報を許可してください。");
+        return;
+      }
+      updateDistances();
+      state.items.sort((a,b)=>{
+        const da = (a.distanceKm ?? 9e9);
+        const db = (b.distanceKm ?? 9e9);
+        return da - db;
+      });
+      saveState(state);
+      renderAll(true);
+    });
+
+    $("#btnGoMap").addEventListener("click", ()=>showTab("map"));
+    $("#btnMapGoList").addEventListener("click", ()=>showTab("list"));
+
+    $("#btnClearDone").addEventListener("click", ()=>{
+      if(confirm("配達完了だけ削除しますか？")){
+        state.items = state.items.filter(x=>x.status!=="配達完了");
+        saveState(state);
+        renderAll();
+        renderMapPins();
+      }
+    });
+    $("#btnClearAll").addEventListener("click", ()=>{
+      if(confirm("全データを削除しますか？")){
+        state.items = [];
+        saveState(state);
+        renderAll();
+        renderMapPins();
+      }
+    });
+
+    /**********************
+     * Map (Leaflet)
+     **********************/
+    let map = null;
+    let myMarker = null;
+    const markersById = new Map();
+
+    function initMap(){
+      if(map) return;
+
+      map = L.map("map", { preferCanvas:true, zoomControl:true });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:19 }).addTo(map);
+
+      const start = (myPos.ok) ? [myPos.lat, myPos.lng] : [34.701909, 135.494977];
+      map.setView(start, 13);
+
+      myMarker = L.circleMarker(start, {
+        radius: 10,
+        weight: 3,
+        color: "#111827",
+        fillColor: "#3b82f6",
+        fillOpacity: 0.9
+      }).addTo(map).bindPopup("現在地");
+
+      // follow location gently
+      setInterval(()=>{
+        if(map && myPos.ok && myMarker){
+          const latlng = [myPos.lat, myPos.lng];
+          myMarker.setLatLng(latlng);
+        }
+      }, 1500);
+    }
+
+    function renderMapPins(){
+      initMap();
+      // clear existing markers
+      markersById.forEach(m=>map.removeLayer(m));
+      markersById.clear();
+
+      let pinCount = 0;
+
+      state.items.forEach(item=>{
+        if(item.lat==null || item.lng==null) return;
+
+        pinCount++;
+        const color = (item.status==="配達完了") ? "#10b981" : (item.status==="不在") ? "#ef4444" : "#3b82f6";
+
+        const m = L.circleMarker([item.lat, item.lng], {
+          radius: 9,
+          weight: 2,
+          color: "#111827",
+          fillColor: color,
+          fillOpacity: 0.95
+        }).addTo(map);
+
+        m.on("click", ()=>{
+          openModal("配達詳細（地図→即打ち）", `
+            <div class="card" style="margin:0">
+              <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap">
+                <div>
+                  <div style="font-weight:900; font-size:15px">${escapeHtml(item.trackNo||"（伝票なし）")}　${escapeHtml(item.name)}</div>
+                  <div style="color:var(--muted); font-weight:800; margin-top:4px">${escapeHtml(item.address)} ${escapeHtml(item.building||"")}</div>
+                  <div style="color:var(--muted); font-weight:800; margin-top:4px">☎ ${escapeHtml(item.phone)}　📮 ${escapeHtml(item.zip)}　📦 ${escapeHtml(item.type)}</div>
+                  ${item.memo ? `<div style="margin-top:6px"><span class="tag">📝 ${escapeHtml(item.memo)}</span></div>` : ""}
+                </div>
+              </div>
+
+              <div class="btnRow" style="margin-top:10px">
+                <button class="btn primary" id="mNav">🧭 ナビ</button>
+                <button class="btn yellow" id="mDone">完了</button>
+                <button class="btn red" id="mAbsent">不在</button>
+                <button class="btn gray" id="mSearch">🔎 リストで検索</button>
+              </div>
+
+              <div class="hint">※地図上で「ピン→完了/不在」まで最短導線。</div>
+            </div>
+          `);
+
+          $("#mNav").addEventListener("click", ()=>{
+            const dest = `${item.lat},${item.lng}`;
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+            window.open(url, "_blank");
+          });
+          $("#mDone").addEventListener("click", ()=>{
+            item.status = "配達完了";
+            item.deliveredAt = nowISO();
+            saveState(state);
+            closeModal();
+            renderAll();
+            renderMapPins();
+          });
+          $("#mAbsent").addEventListener("click", ()=>{
+            item.status = "不在";
+            item.deliveredAt = nowISO();
+            saveState(state);
+            closeModal();
+            renderAll();
+            renderMapPins();
+          });
+          $("#mSearch").addEventListener("click", ()=>{
+            closeModal();
+            showTab("list");
+            $("#search").value = item.trackNo || item.address || item.name;
+            renderList();
+          });
+        });
+
+        markersById.set(item.id, m);
+      });
+
+      // pin KPI
+      $("#pinDot").className = "dot " + (pinCount>0 ? "ok":"ng");
+      $("#pinTxt").textContent = String(pinCount);
+      $("#badgeMap").textContent = String(pinCount);
+
+      // keep around my position
+      if(myPos.ok){
+        // do not force recenter every time; user wants smooth操作
+      }
+    }
+
+    $("#btnMapMyPos").addEventListener("click", ()=>{
+      if(!myPos.ok){ alert("GPSが取れていません。位置情報を許可してください。"); return; }
+      map.setView([myPos.lat, myPos.lng], 15, { animate:true });
+    });
+    $("#btnRefreshPins").addEventListener("click", renderMapPins);
+
+    /**********************
+     * Distances
+     **********************/
+    function updateDistances(){
+      if(!myPos.ok) return;
+      state.items.forEach(it=>{
+        if(it.lat!=null && it.lng!=null){
+          it.distanceKm = haversineKm(myPos.lat, myPos.lng, it.lat, it.lng);
+        }else{
+          it.distanceKm = null;
+        }
+      });
+      saveState(state);
+      // do not render list too often; but update when in list
+    }
+
+    /**********************
+     * Report
+     **********************/
+    function recalcReport(){
+      $("#repDate").value = todayYMD();
+      const und = state.items.filter(x=>x.status==="未配達").length;
+      const done = state.items.filter(x=>x.status==="配達完了").length;
+      const abs = state.items.filter(x=>x.status==="不在").length;
+      const total = state.items.length;
+      $("#repSummary").value = `総数${total} / 未${und} / 完了${done} / 不在${abs}`;
+
+      $("#badgeReport").textContent = String(total);
+    }
+
+    $("#btnRecalc").addEventListener("click", recalcReport);
+
+    function buildCsv(){
+      const tenko = loadTenko();
+      const headers = [
+        "日付","点呼時刻","点呼氏名","体調","アルコール","運行可否","日常点検(タイヤ)","日常点検(ブレーキ)","日常点検(灯火)","日常点検(オイル)","点呼備考",
+        "荷物ID","荷物種別","伝票番号","氏名","電話","郵便","住所","建物","メモ","緯度","経度","ステータス","登録日時","配達日時"
+      ];
+      const rows = [headers];
+
+      state.items.forEach(it=>{
+        rows.push([
+          tenko?.date||"", tenko?.time||"", tenko?.name||"", tenko?.condition||"", tenko?.alcohol||"", tenko?.go||"",
+          tenko?.chkTire?"OK":"", tenko?.chkBrake?"OK":"", tenko?.chkLight?"OK":"", tenko?.chkOil?"OK":"", tenko?.memo||"",
+          it.id, it.type, it.trackNo, it.name, it.phone, it.zip, it.address, it.building, it.memo,
+          it.lat ?? "", it.lng ?? "", it.status, it.createdAt, it.deliveredAt
+        ]);
+      });
+
+      return rows.map(r=>r.map(v=>{
+        const s = String(v ?? "");
+        // CSV escape
+        if(s.includes(",") || s.includes('"') || s.includes("\n")){
+          return `"${s.replace(/"/g,'""')}"`;
+        }
+        return s;
+      }).join(",")).join("\n");
+    }
+
+    $("#btnExportCsv").addEventListener("click", ()=>{
+      const csv = buildCsv();
+      const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `OFA_日報_${todayYMD()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    $("#btnExportPdf").addEventListener("click", ()=>{
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit:"mm", format:"a4" });
+
+      const tenko = loadTenko();
+      const und = state.items.filter(x=>x.status==="未配達").length;
+      const done = state.items.filter(x=>x.status==="配達完了").length;
+      const abs = state.items.filter(x=>x.status==="不在").length;
+
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(16);
+      doc.text("OFA 配達日報", 14, 18);
+
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(11);
+      doc.text(`日付: ${todayYMD()}`, 14, 26);
+      doc.text(`集計: 総${state.items.length} / 未${und} / 完了${done} / 不在${abs}`, 14, 33);
+
+      let y = 40;
+      doc.setFont("helvetica","bold");
+      doc.text("点呼", 14, y); y+=6;
+      doc.setFont("helvetica","normal");
+      const tenkoLine = tenko
+        ? `時刻:${tenko.time||""} / 氏名:${tenko.name||""} / 体調:${tenko.condition||""} / Alc:${tenko.alcohol||""} / ${tenko.go||""}`
+        : "未登録";
+      doc.text(tenkoLine, 14, y); y+=6;
+      if(tenko?.memo){
+        doc.text(`備考: ${tenko.memo}`, 14, y); y+=6;
+      }
+
+      y+=4;
+      doc.setFont("helvetica","bold");
+      doc.text("配達明細（上位40件まで表示：CSVに全件）", 14, y); y+=6;
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(9);
+
+      const show = state.items.slice(0,40);
+      show.forEach((it, i)=>{
+        const line1 = `${String(i+1).padStart(2,"0")} [${it.status}] ${it.type} ${it.trackNo||"(伝票なし)"} ${it.name}`;
+        const line2 = `${it.zip} ${it.address} ${it.building||""}`;
+        doc.text(line1, 14, y); y+=4.5;
+        doc.text(line2, 14, y); y+=5.2;
+        if(y>280){
+          doc.addPage();
+          y = 18;
+        }
+      });
+
+      const memo = ($("#repMemo").value||"").trim();
+      if(memo){
+        if(y>260){ doc.addPage(); y=18; }
+        doc.setFontSize(10);
+        doc.setFont("helvetica","bold");
+        doc.text("会社メモ", 14, y); y+=6;
+        doc.setFont("helvetica","normal");
+        const lines = doc.splitTextToSize(memo, 180);
+        doc.text(lines, 14, y);
+      }
+
+      doc.save(`OFA_日報_${todayYMD()}.pdf`);
+    });
+
+    /**********************
+     * Navigation helpers
+     **********************/
+    $("#btnGoMap").addEventListener("click", ()=>showTab("map"));
+
+    /**********************
+     * Render badges / KPI
+     **********************/
+    function renderBadges(){
+      const total = state.items.length;
+      const und = state.items.filter(x=>x.status==="未配達").length;
+      const done = state.items.filter(x=>x.status==="配達完了").length;
+      const abs = state.items.filter(x=>x.status==="不在").length;
+
+      $("#badgePickup").textContent = String(total);
+      $("#badgeList").textContent = String(total);
+      $("#badgeMap").textContent = String(state.items.filter(x=>x.lat!=null && x.lng!=null).length);
+      $("#badgeReport").textContent = String(total);
+
+      $("#kpiUndel").textContent = String(und);
+      $("#kpiDone").textContent = String(done);
+      $("#kpiAbs").textContent = String(abs);
+    }
+
+    function renderAll(skipList){
+      renderBadges();
+      if(!skipList) renderList();
+      recalcReport();
+    }
+
+    /**********************
+     * Initial
+     **********************/
+    async function boot(){
+      initTenkoForm();
+      setTorchUI();
+      renderAll();
+
+      await startGPS();
+      // map should init lazily on tab open
+
+      // default report date
+      $("#repDate").value = todayYMD();
+
+      // if tenko exists, badge ok
+      const t = loadTenko();
+      if(t) $("#badgeTenko").textContent = "OK";
+
+      // Buttons
+      $("#btnGoMap").addEventListener("click", ()=>showTab("map"));
+
+      // lightweight map when user enters map tab
+      $("#btnMapMyPos").addEventListener("click", ()=>{
+        if(!map) initMap();
+      });
+
+      // For pickup page: stop camera when leaving
+      $$(".tabBtn").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          if(b.dataset.tab!=="pickup"){
+            // stop camera to avoid freeze / heavy
+            await stopCamera();
+            torchOn = false;
+            setTorchUI();
+          }
+        });
+      });
+
+      // quick buttons
+      $("#quickScan").addEventListener("click", ()=>showTab("pickup"));
+      $("#quickList").addEventListener("click", ()=>showTab("list"));
+      $("#quickMap").addEventListener("click", ()=>showTab("map"));
+
+      // map init once after slight delay if user opens map quickly
+      setTimeout(()=>{ if($("#tab-map").style.display==="block") initMap(); }, 300);
+    }
+
+    boot();
+  </script>
 </body>
 </html>
