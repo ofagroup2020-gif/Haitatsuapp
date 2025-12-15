@@ -1,216 +1,148 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>OFA 配達員</title>
-<link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OFA Delivery｜配達員</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <div class="container">
 
   <div class="topbar">
     <div class="brand">
-      <div style="width:38px;height:38px;border-radius:14px;background:linear-gradient(180deg,rgba(31,122,255,.95),rgba(255,214,10,.60));display:grid;place-items:center;font-weight:900;color:#111;">OFA</div>
+      <div style="width:38px;height:38px;border-radius:14px;background:linear-gradient(180deg,rgba(255,214,10,.95),rgba(255,45,85,.55));display:grid;place-items:center;font-weight:900;color:#111;">OFA</div>
       <div>
         <div style="font-size:14px;font-weight:900;">配達員アプリ</div>
-        <small id="who">未ログイン</small>
+        <small>入力 → 保存</small>
       </div>
     </div>
-    <div class="kpis">
-      <div class="kpi"><span class="dot yellow"></span>持出 <span id="k_out">0</span></div>
-      <div class="kpi"><span class="dot green"></span>完了 <span id="k_done">0</span></div>
-      <div class="kpi"><span class="dot red"></span>不在 <span id="k_abs">0</span></div>
-      <div class="kpi"><span class="dot blue"></span>保管 <span id="k_hold">0</span></div>
+    <span class="badge">Driver</span>
+  </div>
+
+  <div class="card">
+    <div class="cardTitle">
+      <strong>配達入力</strong>
+      <span class="badge">Firestore</span>
+    </div>
+
+    <div class="twoCol">
+      <div class="field">
+        <label>日付</label>
+        <input id="date" type="date" />
+      </div>
+      <div class="field">
+        <label>エリア</label>
+        <input id="area" type="text" placeholder="例：鹿児島市" />
+      </div>
+    </div>
+
+    <div class="twoCol">
+      <div class="field">
+        <label>取引先</label>
+        <input id="client" type="text" placeholder="例：ヤマト / 佐川 / Amazon" />
+      </div>
+      <div class="field">
+        <label>個数</label>
+        <input id="qty" type="number" min="0" step="1" placeholder="例：120" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>メモ</label>
+      <input id="memo" type="text" placeholder="例：持ち戻り2件、雨" />
+    </div>
+
+    <div class="field">
+      <label>画像（任意）</label>
+      <input id="img" type="file" accept="image/*" />
+      <small class="note">※画像は Storage に上げてURLを保存します</small>
+    </div>
+
+    <div class="btnRow">
+      <button class="btn primary" id="btnSave">保存</button>
+      <button class="btn yellow" id="btnReload">一覧更新</button>
+      <a class="btn danger" href="index.html">戻る</a>
     </div>
   </div>
 
   <div class="card">
-    <div class="tabs">
-      <button class="tabBtn active" data-tab="t1">①点呼</button>
-      <button class="tabBtn" data-tab="t2">②集荷</button>
-      <button class="tabBtn" data-tab="t3">③リスト</button>
-      <button class="tabBtn" data-tab="t4">④地図</button>
-      <button class="tabBtn" data-tab="t5">⑤日報</button>
+    <div class="cardTitle">
+      <strong>保存済み一覧</strong>
+      <span class="badge">latest</span>
     </div>
-  </div>
-
-  <!-- 点呼 -->
-  <div class="card panel active" id="t1">
-    <div class="cardTitle"><strong>点呼（スマホ最適）</strong><span class="badge" id="tenkoBadge">未</span></div>
-
-    <div class="twoCol">
-      <div class="field">
-        <label>体調</label>
-        <select id="health">
-          <option value="良好">良好</option>
-          <option value="普通">普通</option>
-          <option value="不調">不調</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>アルコール（数値）</label>
-        <input id="al" inputmode="decimal" placeholder="0.00" />
-      </div>
-    </div>
-
-    <div class="field">
-      <label>日常点検（チェックだけでOK）</label>
-      <div class="twoCol">
-        <label><input type="checkbox" class="chk" value="ライト"> ライト</label>
-        <label><input type="checkbox" class="chk" value="タイヤ"> タイヤ</label>
-        <label><input type="checkbox" class="chk" value="ブレーキ"> ブレーキ</label>
-        <label><input type="checkbox" class="chk" value="オイル"> オイル</label>
-        <label><input type="checkbox" class="chk" value="キズ/凹み"> キズ/凹み</label>
-        <label><input type="checkbox" class="chk" value="積載物固定"> 積載物固定</label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>コメント</label>
-      <textarea id="tenkoNote" placeholder="異常があれば記入"></textarea>
-    </div>
-
-    <div class="btnRow">
-      <button class="btn primary" id="btnTenkoSave">点呼を保存</button>
-      <button class="btn" id="btnGotoPickup">②集荷へ</button>
-    </div>
-  </div>
-
-  <!-- 集荷 -->
-  <div class="card panel" id="t2">
-    <div class="cardTitle"><strong>集荷（カメラ1つで登録）</strong><span class="badge">OCR→修正→登録</span></div>
-
-    <p class="note">
-      📌 必須は <b>名前・住所</b>（郵便番号は住所から補完）<br>
-      📌 撮影 → 文字候補を自動抽出 → 間違いだけ直して登録（10分で100個を想定）
-    </p>
-
-    <div class="btnRow">
-      <input id="cam" type="file" accept="image/*" capture="environment" style="display:none">
-      <button class="btn primary" id="btnCapture">伝票を撮影して読み取り</button>
-      <button class="btn yellow" id="btnTorch">ライト（対応端末のみ）</button>
-    </div>
-
-    <div class="field">
-      <label>読み取り結果（修正OK）</label>
-      <div class="twoCol">
-        <div class="field">
-          <label>伝票番号（任意：末尾4桁表示で使う）</label>
-          <input id="tracking" placeholder="例）0123456789" />
-        </div>
-        <div class="field">
-          <label>荷物種別</label>
-          <select id="ptype">
-            <option value="宅配">宅配</option>
-            <option value="手紙/郵便">手紙/郵便</option>
-            <option value="小包">小包</option>
-            <option value="食品">食品</option>
-            <option value="医療">医療</option>
-            <option value="家電">家電</option>
-            <option value="引越し">引越し</option>
-            <option value="その他">その他</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>お客様名（必須）</label>
-        <input id="name" placeholder="例）山田 太郎" />
-      </div>
-
-      <div class="twoCol">
-        <div class="field">
-          <label>郵便番号</label>
-          <input id="zip" inputmode="numeric" placeholder="例）8910705" />
-        </div>
-        <div class="field">
-          <label>電話（任意）</label>
-          <input id="tel" inputmode="tel" placeholder="任意" />
-        </div>
-      </div>
-
-      <div class="field">
-        <label>住所（必須）</label>
-        <input id="addr" placeholder="例）鹿児島県鹿児島市〇〇..." />
-      </div>
-
-      <div class="field">
-        <label>メモ（置き配場所/特徴など）</label>
-        <textarea id="memo" placeholder="例）玄関左の宅配BOX / インターホン故障"></textarea>
-      </div>
-
-      <div class="btnRow">
-        <button class="btn green" id="btnRegisterOut">持出登録（地図ピン自動）</button>
-        <button class="btn" id="btnClear">入力クリア</button>
-      </div>
-
-      <div class="note" id="geoStatus" style="margin-top:12px;display:none;"></div>
-    </div>
-  </div>
-
-  <!-- リスト -->
-  <div class="card panel" id="t3">
-    <div class="cardTitle"><strong>リスト（検索・並び替え・手動順）</strong><span class="badge">スワイプより“確実”優先</span></div>
-
-    <div class="twoCol">
-      <div class="field">
-        <label>検索（名前/住所/伝票下4桁）</label>
-        <input id="q" placeholder="例）山田 / 1699 / 8584" />
-      </div>
-      <div class="field">
-        <label>並び替え</label>
-        <select id="sort">
-          <option value="near">近い順（現在地）</option>
-          <option value="addr">住所順（文字）</option>
-          <option value="time">時間指定順（将来用）</option>
-          <option value="manual">手動順（ドラッグ）</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="btnRow">
-      <button class="btn" id="btnRefresh">更新</button>
-      <button class="btn yellow" id="btnExportCSV">CSV出力</button>
-    </div>
-
-    <div class="list" id="list"></div>
-  </div>
-
-  <!-- 地図 -->
-  <div class="card panel" id="t4">
-    <div class="cardTitle"><strong>地図（軽く・固まらない）</strong><span class="badge">ピン→操作</span></div>
-
-    <div class="btnRow">
-      <button class="btn primary" id="btnMyPos">現在地へ</button>
-      <button class="btn" id="btnPinFix">ピン修正モード</button>
-    </div>
-
-    <div class="mapWrap" id="map"></div>
-    <p class="note" style="margin-top:10px;">
-      ピンをタップ → 完了/不在/保管/返却/引継 を更新できます。<br>
-      ピンがズレたら「ピン修正モード」→地図タップで補正。
-    </p>
-  </div>
-
-  <!-- 日報 -->
-  <div class="card panel" id="t5">
-    <div class="cardTitle"><strong>日報</strong><span class="badge">集計・履歴</span></div>
-    <div id="report"></div>
-
-    <div class="btnRow">
-      <button class="btn yellow" id="btnReportCSV">日報CSV</button>
-      <button class="btn" id="btnLogout">ログアウト</button>
-    </div>
+    <div id="list" class="note">読み込み中...</div>
   </div>
 
 </div>
 
-<!-- Google Maps -->
-<script async
-  src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places">
-</script>
+<script type="module">
+  import { saveDelivery, loadDeliveries, uploadImage } from "./app.js";
 
-<script type="module" src="app.js"></script>
+  const $ = (id) => document.getElementById(id);
+
+  // 初期日付
+  (() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    $("date").value = `${yyyy}-${mm}-${dd}`;
+  })();
+
+  async function renderList() {
+    try {
+      const rows = await loadDeliveries();
+      // ざっくり新しい順（createdAtがFirestore Timestampの場合は取れないことがあるのでID順）
+      const html = rows
+        .slice()
+        .reverse()
+        .map((r) => {
+          const img = r.imageUrl ? `<div style="margin-top:8px;"><img src="${r.imageUrl}" style="max-width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.08);" /></div>` : "";
+          return `
+            <div style="padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;margin:10px 0;">
+              <div style="font-weight:900;">${r.date ?? ""} / ${r.area ?? ""}</div>
+              <div style="opacity:.9;margin-top:4px;">取引先：${r.client ?? ""} ｜ 個数：${r.qty ?? ""}</div>
+              <div style="opacity:.8;margin-top:4px;">${r.memo ?? ""}</div>
+              ${img}
+            </div>
+          `;
+        })
+        .join("");
+      $("list").innerHTML = html || `<div class="note">まだデータがありません</div>`;
+    } catch (e) {
+      $("list").innerHTML = `<div class="note">読み込みエラー：${e?.message ?? String(e)}</div>`;
+    }
+  }
+
+  $("btnReload").onclick = renderList;
+
+  $("btnSave").onclick = async () => {
+    try {
+      const date = $("date").value;
+      const area = $("area").value.trim();
+      const client = $("client").value.trim();
+      const qty = Number($("qty").value || 0);
+      const memo = $("memo").value.trim();
+
+      let imageUrl = "";
+      const file = $("img").files?.[0];
+      if (file) {
+        imageUrl = await uploadImage(file);
+      }
+
+      await saveDelivery({ date, area, client, qty, memo, imageUrl });
+      alert("保存しました");
+
+      // 画像リセット
+      $("img").value = "";
+      await renderList();
+    } catch (e) {
+      alert(e?.message ?? String(e));
+    }
+  };
+
+  renderList();
+</script>
 </body>
 </html>
