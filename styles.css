@@ -1,1 +1,92 @@
+* {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif;
+}
 
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #111;
+}
+
+.hidden {
+  display: none;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: linear-gradient(90deg, #facc15, #ffffff);
+  font-weight: bold;
+}
+
+.logo {
+  font-size: 20px;
+}
+
+.status span {
+  margin-left: 10px;
+}
+
+.ng {
+  color: red;
+}
+
+nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px;
+  border-top: 1px solid #ccc;
+}
+
+nav button {
+  flex: 1;
+  margin: 0 4px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #facc15;
+  font-weight: bold;
+}
+
+.view {
+  padding: 10px;
+}
+
+video {
+  width: 100%;
+  border-radius: 12px;
+  background: black;
+}
+
+input, textarea {
+  width: 100%;
+  margin: 6px 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  font-weight: bold;
+}
+
+#listArea li {
+  list-style: none;
+  padding: 10px;
+  border: 1px solid #ddd;
+  margin-bottom: 8px;
+  border-radius: 12px;
+}
+
+#mapArea {
+  width: 100%;
+  height: 70vh;
+  border-radius: 12px;
+}
