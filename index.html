@@ -3,411 +3,517 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>OFA 配達アプリ</title>
+<title>OFA 配達アプリ（リスト×地図）</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-<!-- ✅ iPhone対応 バーコード（ZXing） -->
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+<!-- Map: Leaflet + MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 <style>
 :root{
-  --yellow:#FFD400; --blue:#2563eb; --red:#ef4444; --gray:#e5e7eb;
+  --yellow:#FFD400; --blue:#2563eb; --red:#ef4444; --gray:#e5e7eb; --ink:#0f172a; --muted:#64748b;
+  --line:#e2e8f0; --card:#fff; --bg:#f5f7fb; --r:16px;
 }
-body{margin:0;font-family:"Noto Sans JP",sans-serif;background:#f5f7fb;color:#0f172a}
-header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e5e7eb}
-.top{display:flex;justify-content:space-between;align-items:center;padding:10px}
-.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#fff2a8);
-display:grid;place-items:center;font-weight:900}
-nav{display:flex;gap:6px;padding:6px}
-.tab{flex:1;padding:10px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:900}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans JP",sans-serif;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:center;padding:10px 12px}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#fff2a8);display:grid;place-items:center;font-weight:900}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:12px;background:#fff;color:var(--muted)}
+nav{display:flex;gap:8px;padding:8px 12px 12px}
+.tab{flex:1;border:1px solid var(--line);border-radius:14px;padding:12px;font-weight:900;background:#fff}
 .tab.active{background:#eef3ff}
-main{padding:10px}
-.card{background:#fff;border-radius:16px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
-button{border:0;border-radius:12px;padding:10px;font-weight:900}
+main{padding:12px;display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;box-shadow:0 10px 26px rgba(15,23,42,.08)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{border:0;border-radius:14px;padding:11px 12px;font-weight:900}
 .btn-yellow{background:var(--yellow)}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-red{background:var(--red);color:#fff}
 .btn-gray{background:var(--gray)}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-select,input{width:100%;padding:10px;border-radius:12px;border:1px solid #cbd5e1}
-.small{font-size:12px;color:#64748b}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:12px}
-.videoWrap{margin-top:10px;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#0b1220}
-video{width:100%;height:260px;object-fit:cover;display:block}
-.list{display:grid;gap:10px;margin-top:10px}
-.item{border:1px solid #e5e7eb;border-radius:14px;padding:10px}
-.badge{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #e5e7eb;font-size:11px;font-weight:900}
+input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:10px;font-size:14px}
+label{font-size:12px;color:var(--muted);display:block;margin:10px 0 6px}
+.list{display:grid;gap:10px}
+.item{border:1px solid var(--line);border-radius:14px;padding:10px}
+.itemHead{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:900;background:#f8fafc}
 .warn{color:var(--red);font-weight:900}
-.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.small{font-size:12px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#map{height:52vh;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.kpi{display:flex;gap:8px;flex-wrap:wrap}
+.kpi .chip{font-weight:900}
+hr{border:0;border-top:1px solid var(--line);margin:10px 0}
 </style>
 </head>
 
 <body>
 <header>
   <div class="top">
-    <div style="display:flex;gap:8px;align-items:center">
+    <div class="brand">
       <div class="logo">OFA</div>
       <div>
-        <b>配達アプリ</b><br><small class="small">ヤマト型・完全版（iPhone対応）</small>
+        <b>配達アプリ</b><br>
+        <span class="small">リスト ⇄ 地図（ピン）で見える化</span>
       </div>
     </div>
-    <div class="pill" id="gps">GPS: 未取得</div>
+    <div class="chip" id="gps">GPS: 未取得</div>
   </div>
   <nav>
-    <button class="tab active" data-tab="scan">SCAN</button>
-    <button class="tab" data-tab="todo">未配達</button>
-    <button class="tab" data-tab="done">完了</button>
+    <button class="tab active" data-tab="add">登録</button>
+    <button class="tab" data-tab="list">リスト</button>
+    <button class="tab" data-tab="map">地図</button>
   </nav>
 </header>
 
 <main>
-  <!-- SCAN -->
-  <section id="scan" class="card">
+  <!-- 登録 -->
+  <section id="add" class="card">
     <div class="row">
       <button class="btn-blue" onclick="getGPS()">📍 GPS取得</button>
-      <button class="btn-yellow" onclick="startScan()">📷 連続スキャン</button>
-      <button class="btn-gray" onclick="stopScan()">⏹ 停止</button>
-      <button class="btn-gray" onclick="toggleTorch()">🔦 ライト</button>
+      <button class="btn-gray" onclick="tempAdd()">＋ 仮登録</button>
+      <button class="btn-gray" onclick="exportCSV()">⬇ CSV</button>
     </div>
 
-    <div style="margin-top:10px">
-      <label class="small">荷物種別</label>
-      <select id="kind">
-        <option value="宅配">宅配</option>
-        <option value="手紙">手紙</option>
-        <option value="ポスト投函">ポスト投函</option>
-        <option value="冷蔵・冷凍">冷蔵・冷凍</option>
-        <option value="代引">代引</option>
-        <option value="大物">大物</option>
-        <option value="壊れ物">壊れ物</option>
-        <option value="書類">書類</option>
-        <option value="医療品">医療品</option>
-        <option value="建材">建材</option>
-      </select>
+    <hr>
+
+    <label>荷物番号（任意：仮登録OK）</label>
+    <input id="code" placeholder="例）1234-5678（無ければ空でOK）">
+
+    <label>荷物種別</label>
+    <select id="kind">
+      <option value="宅配">宅配</option>
+      <option value="手紙">手紙</option>
+      <option value="ポスト投函">ポスト投函</option>
+      <option value="冷蔵・冷凍">冷蔵・冷凍</option>
+      <option value="代引">代引</option>
+      <option value="大物">大物</option>
+      <option value="壊れ物">壊れ物</option>
+      <option value="書類">書類</option>
+      <option value="医療品">医療品</option>
+      <option value="建材">建材</option>
+    </select>
+
+    <label>宛名（配達前までに必須）</label>
+    <input id="name" placeholder="例）山田 太郎">
+
+    <label>住所（配達前までに必須 / ピン用）</label>
+    <input id="address" placeholder="例）大阪市◯◯区◯◯…">
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn-yellow" onclick="add()">＋ 登録（住所があればピン化）</button>
+      <button class="btn-gray" onclick="batchGeocode()">🧭 未ジオコーディングを一括ピン化</button>
     </div>
 
-    <div class="videoWrap" id="videoWrap" style="display:none">
-      <video id="video" playsinline muted></video>
-    </div>
+    <div class="small" id="msg" style="margin-top:8px">ヒント：持ち出し時は仮登録→配達前に住所/宛名を入れる運用が速い。</div>
+  </section>
 
+  <!-- リスト -->
+  <section id="list" class="card" style="display:none">
+    <div class="kpi">
+      <span class="chip">未配達: <b id="kTodo">0</b></span>
+      <span class="chip">完了: <b id="kDone">0</b></span>
+      <span class="chip">不在: <b id="kAbsent">0</b></span>
+      <span class="chip">ピン有: <b id="kPinned">0</b></span>
+    </div>
+    <div class="small" style="margin-top:8px">リストを押すと地図がそのピンへ移動します。</div>
+    <div class="list" id="listBox" style="margin-top:10px"></div>
+  </section>
+
+  <!-- 地図 -->
+  <section id="map" class="card" style="display:none">
     <div class="row">
-      <button class="btn-gray" onclick="tempAdd()">＋ 読めない荷物（仮登録）</button>
-      <button class="btn-gray" onclick="manualAdd()">＋ 手動入力</button>
+      <button class="btn-blue" onclick="fitAll()">🗺 全ピン表示</button>
+      <button class="btn-gray" onclick="centerMe()">🎯 現在地へ</button>
+      <button class="btn-gray" onclick="renderMap(true)">🔄 ピン再描画</button>
     </div>
-
-    <div class="small" id="status" style="margin-top:8px">待機中：連続スキャンを押してください。</div>
-  </section>
-
-  <!-- TODO -->
-  <section id="todo" class="card" style="display:none">
-    <div class="small">※「名前・住所」は配達前までに必須（未入力は赤表示）</div>
-    <div class="list" id="todoList"></div>
-  </section>
-
-  <!-- DONE -->
-  <section id="done" class="card" style="display:none">
-    <div class="list" id="doneList"></div>
+    <div id="map" style="margin-top:10px"></div>
+    <div class="small" style="margin-top:8px">
+      ピンをタップ→詳細／ナビ／完了・不在など操作できます。
+    </div>
   </section>
 </main>
 
 <script>
-const KEY="ofa_yamato_complete_v2";
-let data = JSON.parse(localStorage.getItem(KEY) || "[]");
-
+/* ====== データ ====== */
+const KEY="ofa_delivery_map_v1";
+let items = JSON.parse(localStorage.getItem(KEY) || "[]");
 let gps=null;
-let stream=null;
-let track=null;
-let torch=false;
 
-let scanning=false;
-let lastCode="";
-let lastAt=0;
+function save(){ localStorage.setItem(KEY, JSON.stringify(items)); }
 
-const { BrowserMultiFormatReader, NotFoundException, BarcodeFormat, DecodeHintType } = ZXing;
-
-// ✅ 読める確率を上げるヒント（主要フォーマット）
-const hints = new Map();
-hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-  BarcodeFormat.QR_CODE,
-  BarcodeFormat.CODE_128,
-  BarcodeFormat.CODE_39,
-  BarcodeFormat.EAN_13,
-  BarcodeFormat.EAN_8,
-  BarcodeFormat.ITF,
-  BarcodeFormat.DATA_MATRIX,
-  BarcodeFormat.PDF_417
-]);
-hints.set(DecodeHintType.TRY_HARDER, true);
-
-// 連続スキャン間隔（ms）
-const codeReader = new BrowserMultiFormatReader(hints, 250);
-
-const $ = (id)=>document.getElementById(id);
-
-// Tabs
-document.querySelectorAll(".tab").forEach(t=>{
-  t.onclick=()=>{
+/* ====== タブ ====== */
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    ["scan","todo","done"].forEach(id=>$(id).style.display="none");
-    $(t.dataset.tab).style.display="block";
-    render();
-  }
+    btn.classList.add("active");
+    ["add","list","map"].forEach(id=>document.getElementById(id).style.display="none");
+    document.getElementById(btn.dataset.tab).style.display="block";
+    if(btn.dataset.tab==="list") renderList();
+    if(btn.dataset.tab==="map") setTimeout(()=>initMapIfNeeded(), 0);
+  };
 });
 
-function save(){
-  localStorage.setItem(KEY, JSON.stringify(data));
-}
-
+/* ====== GPS ====== */
 function getGPS(){
   navigator.geolocation.getCurrentPosition(
     p=>{
       gps={lat:p.coords.latitude,lng:p.coords.longitude};
-      $("gps").textContent="GPS: OK";
+      document.getElementById("gps").textContent="GPS: OK";
+      if(meMarker) meMarker.setLatLng([gps.lat,gps.lng]);
+      if(map && !map._userCentered){ map.setView([gps.lat,gps.lng], 14); map._userCentered=true; }
     },
-    e=>alert("GPS取得できませんでした（設定→位置情報をON）")
+    e=>alert("GPS取得できません（iPhone設定→位置情報→Safariを許可）")
   );
 }
 
-function beep(){
-  try{
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value=880;
-    g.gain.value=0.05;
-    o.start();
-    setTimeout(()=>{o.stop(); ctx.close();}, 80);
-  }catch{}
-  if(navigator.vibrate) navigator.vibrate(40);
-}
-
-async function startScan(){
-  if(scanning) return;
-  scanning=true;
-  $("status").textContent="カメラ起動中…（許可が出たらOK）";
-  $("videoWrap").style.display="block";
-
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
-    track = stream.getVideoTracks()[0];
-
-    $("video").srcObject = stream;
-    await $("video").play();
-
-    $("status").textContent="スキャン中：バーコード/QRを枠内に入れてください。";
-
-    // ✅ iPhoneで安定：decodeFromVideoDevice を使う
-    codeReader.decodeFromVideoDevice(null, "video", (result, err) => {
-      if(!scanning) return;
-
-      if(result){
-        const code = result.getText();
-        const now = Date.now();
-
-        // ✅ 連続で同じコード拾うの防止
-        if(code === lastCode && (now-lastAt) < 1200) return;
-        lastCode = code; lastAt = now;
-
-        add(code);
-        beep();
-        $("status").textContent=`読み取りOK：${code}`;
-      }else if(err && !(err instanceof NotFoundException)){
-        // NotFoundは「見つからない」なので無視。その他だけ表示
-        $("status").textContent="読み取りエラー：距離/明るさ/角度を調整してください。";
-      }
-    });
-  }catch(e){
-    scanning=false;
-    $("status").textContent="カメラ起動に失敗：Safariのカメラ許可を確認してください。";
-    alert("カメラが起動できません。iPhone設定→Safari→カメラを許可、またはサイト設定でカメラ許可してください。");
-  }
-}
-
-function stopScan(){
-  scanning=false;
-  try{ codeReader.reset(); }catch{}
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
-    stream=null; track=null;
-  }
-  $("status").textContent="停止しました。";
-}
-
-async function toggleTorch(){
-  try{
-    if(!track) return alert("先に連続スキャンでカメラを起動してください。");
-    const cap = track.getCapabilities ? track.getCapabilities() : {};
-    if(!cap.torch) return alert("この端末/ブラウザはライト制御に非対応です。");
-    torch = !torch;
-    await track.applyConstraints({ advanced: [{ torch }] });
-  }catch(e){
-    alert("ライト切替に失敗しました。");
-  }
-}
-
+/* ====== 追加 ====== */
 function tempAdd(){
-  const n = data.filter(x=>String(x.code||"").startsWith("TEMP-")).length + 1;
-  add(`TEMP-${String(n).padStart(4,"0")}`);
+  const n = items.filter(x=>String(x.code||"").startsWith("TEMP-")).length + 1;
+  const code = `TEMP-${String(n).padStart(4,"0")}`;
+  items.push(mkItem({code}));
+  save();
+  flash(`仮登録しました：${code}`);
 }
+function add(){
+  const code = (document.getElementById("code").value||"").trim() || "";
+  const kind = document.getElementById("kind").value;
+  const name = (document.getElementById("name").value||"").trim();
+  const address = (document.getElementById("address").value||"").trim();
 
-function manualAdd(){
-  const code = prompt("荷物番号（無ければ空でもOK）");
-  const fixed = (code && code.trim()) ? code.trim() : "";
-  if(!fixed){
-    tempAdd();
-  }else{
-    add(fixed);
-  }
+  items.push(mkItem({code: code || autoTemp(), kind, name, address}));
+  save();
+  flash("登録しました。住所がある場合はピン化できます（ジオコーディング）。");
+
+  document.getElementById("code").value="";
+  document.getElementById("name").value="";
+  document.getElementById("address").value="";
+
+  // 住所があれば即ジオコーディング（1件）
+  const it = items[items.length-1];
+  if(it.address) geocodeItem(it, true);
 }
+function autoTemp(){
+  const n = items.filter(x=>String(x.code||"").startsWith("TEMP-")).length + 1;
+  return `TEMP-${String(n).padStart(4,"0")}`;
+}
+function mkItem({code, kind="宅配", name="", address=""}){
+  return {
+    id: String(Date.now()+Math.random()),
+    code: code || autoTemp(),
+    kind, name, address,
+    status: "todo",        // todo | done | absent
+    createdAt: new Date().toLocaleString(),
+    lat: null, lng: null,  // ピン
+    geocodeAt: null
+  };
+}
+function flash(t){ document.getElementById("msg").textContent=t; }
 
-function add(code){
-  // 重複防止（未配達内）
-  if(data.find(x=>x.code===code && x.status==="todo")) return;
+/* ====== リスト ====== */
+function renderList(){
+  const box=document.getElementById("listBox");
+  box.innerHTML="";
 
-  data.push({
-    id: Date.now() + Math.random(),
-    code,
-    kind: $("kind").value,
-    name: "",
-    address: "",
-    status: "todo",
-    createdAt: new Date().toLocaleString()
+  const todo = items.filter(x=>x.status==="todo").length;
+  const done = items.filter(x=>x.status==="done").length;
+  const absent = items.filter(x=>x.status==="absent").length;
+  const pinned = items.filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng)).length;
+
+  document.getElementById("kTodo").textContent=todo;
+  document.getElementById("kDone").textContent=done;
+  document.getElementById("kAbsent").textContent=absent;
+  document.getElementById("kPinned").textContent=pinned;
+
+  // ヤマト型：未配達を上に
+  const sorted=[...items].sort((a,b)=>{
+    const pa = a.status==="todo"?0:(a.status==="absent"?1:2);
+    const pb = b.status==="todo"?0:(b.status==="absent"?1:2);
+    return pa-pb;
   });
-  save();
-  render();
-}
 
-function openNav(item){
-  if(!item.name || !item.address){
-    alert("配達前までに「名前・住所」は必須です。未入力を埋めてください。");
-    return;
-  }
-  const url = gps
-    ? `https://www.google.com/maps/dir/?api=1&origin=${gps.lat},${gps.lng}&destination=${encodeURIComponent(item.address)}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
-  window.open(url, "_blank");
-}
+  sorted.forEach(it=>{
+    const warn = (!it.name || !it.address) ? `<span class="warn">⚠ 未入力</span>` : "";
+    const pin = (Number.isFinite(it.lat)&&Number.isFinite(it.lng)) ? "" : `<span class="warn">📍未ピン</span>`;
+    const st = it.status==="todo"?"未配達":(it.status==="done"?"完了":"不在");
 
-function markDone(item){
-  if(!item.name || !item.address){
-    alert("配達前までに「名前・住所」は必須です。未入力を埋めてください。");
-    return;
-  }
-  item.status="done";
-  item.doneAt=new Date().toLocaleString();
-  save();
-  render();
-
-  // ✅ 次の未配達へ自動スクロール（ヤマト型）
-  const next = data.find(x=>x.status==="todo");
-  if(next){
-    // 未配達タブへ
-    document.querySelector('[data-tab="todo"]').click();
-  }
-}
-
-function render(){
-  $("todoList").innerHTML="";
-  $("doneList").innerHTML="";
-
-  const todos = data.filter(x=>x.status==="todo");
-  const dones = data.filter(x=>x.status==="done");
-
-  todos.forEach(x=>{
-    const warn = (!x.name || !x.address) ? `<span class="warn">⚠ 未入力</span>` : "";
-    $("todoList").insertAdjacentHTML("beforeend", `
-      <div class="item" data-id="${x.id}">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
-          <b>${escapeHtml(x.code)}</b>
-          <span class="badge">${escapeHtml(x.kind)}</span>
+    const html = `
+      <div class="item" onclick="focusItem('${it.id}')">
+        <div class="itemHead">
+          <b>${esc(it.code)}</b>
+          <span class="badge">${esc(it.kind)}</span>
         </div>
-        <div class="small">${escapeHtml(x.createdAt)} ${warn}</div>
-
-        <div style="margin-top:8px" class="small">宛名（配達前までに必須）</div>
-        <input placeholder="例）山田 太郎" value="${escapeAttr(x.name)}" oninput="updateField('${x.id}','name',this.value)">
-
-        <div style="margin-top:8px" class="small">住所（配達前までに必須）</div>
-        <input placeholder="例）大阪市〇〇区〇〇…" value="${escapeAttr(x.address)}" oninput="updateField('${x.id}','address',this.value)">
-
-        <div class="actions">
-          <button class="btn-blue" onclick="openNav(getItem('${x.id}'))">ナビ</button>
-          <button class="btn-yellow" onclick="markDone(getItem('${x.id}'))">${(x.kind==='手紙'||x.kind==='ポスト投函')?'投函完了':'配達完了'}</button>
-          <button class="btn-gray" onclick="quickFill('${x.id}')">⚡ 住所/名前を貼付</button>
-          <button class="btn-red" onclick="removeItem('${x.id}')">削除</button>
+        <div class="small">${esc(it.createdAt)} / <b>${st}</b> ${warn} ${pin}</div>
+        <div class="small">${esc(it.name||"（宛名未入力）")} / ${esc(it.address||"（住所未入力）")}</div>
+        <div class="actions" onclick="event.stopPropagation()">
+          <button class="btn-gray" onclick="editItem('${it.id}')">編集</button>
+          <button class="btn-blue" onclick="nav('${it.id}')">ナビ</button>
+          <button class="btn-yellow" onclick="setStatus('${it.id}','done')">完了</button>
+          <button class="btn-red" onclick="setStatus('${it.id}','absent')">不在</button>
+          <button class="btn-gray" onclick="removeItem('${it.id}')">削除</button>
         </div>
       </div>
-    `);
-  });
-
-  dones.forEach(x=>{
-    $("doneList").insertAdjacentHTML("beforeend", `
-      <div class="item">
-        <b>${escapeHtml(x.code)}</b>
-        <div class="small"><span class="badge">${escapeHtml(x.kind)}</span> 完了：${escapeHtml(x.doneAt||"")}</div>
-        <div class="small">${escapeHtml(x.name||"")} / ${escapeHtml(x.address||"")}</div>
-      </div>
-    `);
+    `;
+    box.insertAdjacentHTML("beforeend", html);
   });
 }
 
-function getItem(id){
-  return data.find(x=>String(x.id)===String(id));
-}
+/* ====== 編集・状態 ====== */
+function getById(id){ return items.find(x=>x.id===id); }
 
-function updateField(id, key, val){
-  const it = getItem(id);
-  if(!it) return;
-  it[key]=val;
+function editItem(id){
+  const it=getById(id); if(!it) return;
+  const name = prompt("宛名（配達前までに必須）", it.name||"");
+  if(name===null) return;
+  const address = prompt("住所（配達前までに必須）", it.address||"");
+  if(address===null) return;
+  it.name = name.trim();
+  it.address = address.trim();
   save();
+  renderList();
+  // 住所変えたら再ピン化
+  if(it.address) geocodeItem(it, true);
 }
 
-function quickFill(id){
-  const it = getItem(id);
-  if(!it) return;
-  const clip = prompt("住所や宛名を貼り付け（例：山田太郎 大阪市…）\n→自分でコピペして貼ってOK");
-  if(!clip) return;
-  // 超簡易：最初の1行を名前っぽく、残りを住所に寄せる
-  const s = clip.replace(/\r/g,"").trim();
-  if(!s) return;
+function setStatus(id, status){
+  const it=getById(id); if(!it) return;
 
-  // 住所っぽい文字（都道府県/市/区/町/丁目など）が入っていれば住所に
-  const hasAddr = /(都|道|府|県|市|区|町|村|丁目|番地|号)/.test(s);
-
-  if(hasAddr){
-    // 先頭に名前が入ってるパターンもあるので、区切りで分解
-    const parts = s.split(/\s+/);
-    if(parts.length>=2){
-      it.name = it.name || parts[0];
-      it.address = it.address || parts.slice(1).join(" ");
-    }else{
-      it.address = it.address || s;
-    }
-  }else{
-    it.name = it.name || s;
+  // 配達前チェック（②：配達前までに必須）
+  if((status==="done" || status==="absent") && (!it.name || !it.address)){
+    alert("配達前までに「宛名・住所」は必須です。編集で入力してください。");
+    return;
   }
-  save(); render();
+  it.status=status;
+  it.statusAt=new Date().toLocaleString();
+  save();
+  renderList();
+  renderMap(true); // 色反映
 }
 
 function removeItem(id){
   if(!confirm("削除しますか？")) return;
-  data = data.filter(x=>String(x.id)!==String(id));
-  save(); render();
+  items = items.filter(x=>x.id!==id);
+  save();
+  renderList();
+  renderMap(true);
 }
 
-function escapeHtml(str){
-  return String(str??"")
+/* ====== ナビ（Google） ====== */
+function nav(id){
+  const it=getById(id); if(!it) return;
+  if(!it.address || !it.name){
+    alert("配達前までに「宛名・住所」は必須です。");
+    return;
+  }
+  const url = gps
+    ? `https://www.google.com/maps/dir/?api=1&origin=${gps.lat},${gps.lng}&destination=${encodeURIComponent(it.address)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(it.address)}`;
+  window.open(url, "_blank");
+}
+
+/* ====== CSV ====== */
+function exportCSV(){
+  const header = ["id","code","kind","name","address","status","createdAt","statusAt","lat","lng"];
+  const rows = items.map(it=>[
+    it.id,it.code,it.kind,it.name,it.address,it.status,it.createdAt,it.statusAt||"",
+    (Number.isFinite(it.lat)?it.lat:""),(Number.isFinite(it.lng)?it.lng:"")
+  ]);
+  const csv = [header, ...rows].map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `ofa_delivery_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ====== 地図 ====== */
+let map=null;
+let cluster=null;
+let markersById=new Map();
+let meMarker=null;
+
+function initMapIfNeeded(){
+  if(map) { map.invalidateSize(); renderMap(true); return; }
+
+  map = L.map("map", { zoomControl:true });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  cluster = L.markerClusterGroup();
+  map.addLayer(cluster);
+
+  map.setView([35.681236, 139.767125], 12); // 初期：東京駅
+
+  meMarker = L.circleMarker([35.681236, 139.767125], {radius:8});
+  meMarker.addTo(map);
+
+  if(gps){
+    meMarker.setLatLng([gps.lat,gps.lng]);
+    map.setView([gps.lat,gps.lng], 14);
+    map._userCentered=true;
+  }
+  renderMap(true);
+}
+
+function markerColor(status){
+  // Leaflet標準マーカー色の代わりにシンプルな円で色分け
+  if(status==="done") return "#22c55e";
+  if(status==="absent") return "#ef4444";
+  return "#2563eb"; // todo
+}
+
+function renderMap(force=false){
+  if(!map || !cluster) return;
+
+  cluster.clearLayers();
+  markersById.clear();
+
+  items.forEach(it=>{
+    if(!(Number.isFinite(it.lat) && Number.isFinite(it.lng))) return;
+
+    const col = markerColor(it.status);
+    const m = L.circleMarker([it.lat, it.lng], {radius:10, color:col, weight:3, fillColor:col, fillOpacity:0.25});
+
+    m.on("click", ()=>{
+      showPopup(it, m);
+      // ピン→リストへも寄せる
+      document.querySelector('[data-tab="list"]').click();
+      setTimeout(()=>highlightInList(it.id), 50);
+    });
+
+    markersById.set(it.id, m);
+    cluster.addLayer(m);
+  });
+
+  // 現在地
+  if(gps){
+    meMarker.setLatLng([gps.lat,gps.lng]);
+  }
+  setTimeout(()=>map.invalidateSize(), 0);
+}
+
+function showPopup(it, marker){
+  const st = it.status==="todo"?"未配達":(it.status==="done"?"完了":"不在");
+  const warn = (!it.name || !it.address) ? "⚠ 宛名/住所 未入力" : "";
+  const html = `
+    <div style="min-width:220px">
+      <b>${esc(it.code)}</b> <span style="font-weight:900">[${esc(it.kind)}]</span><br>
+      <span style="color:#64748b">${esc(st)} ${warn}</span><br><br>
+      <div style="font-size:12px;color:#0f172a">${esc(it.name||"（宛名未入力）")}</div>
+      <div style="font-size:12px;color:#0f172a">${esc(it.address||"（住所未入力）")}</div>
+      <hr style="border:0;border-top:1px solid #e2e8f0;margin:8px 0">
+      <button style="background:#2563eb;color:#fff;border:0;border-radius:10px;padding:8px 10px;font-weight:900" onclick="nav('${it.id}')">ナビ</button>
+      <button style="background:#FFD400;border:0;border-radius:10px;padding:8px 10px;font-weight:900" onclick="setStatus('${it.id}','done')">完了</button>
+      <button style="background:#ef4444;color:#fff;border:0;border-radius:10px;padding:8px 10px;font-weight:900" onclick="setStatus('${it.id}','absent')">不在</button>
+      <button style="background:#e5e7eb;border:0;border-radius:10px;padding:8px 10px;font-weight:900" onclick="editItem('${it.id}')">編集</button>
+    </div>
+  `;
+  marker.bindPopup(html).openPopup();
+}
+
+function fitAll(){
+  initMapIfNeeded();
+  const pts = items.filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng)).map(x=>[x.lat,x.lng]);
+  if(!pts.length) return alert("ピンがありません（住所入力→ピン化してください）");
+  map.fitBounds(pts, {padding:[20,20]});
+}
+
+function centerMe(){
+  initMapIfNeeded();
+  if(!gps) return alert("先にGPS取得してください");
+  map.setView([gps.lat,gps.lng], 15);
+}
+
+/* ====== リスト→地図へフォーカス ====== */
+function focusItem(id){
+  const it=getById(id); if(!it) return;
+
+  // 先に地図へ
+  document.querySelector('[data-tab="map"]').click();
+  setTimeout(()=>{
+    initMapIfNeeded();
+    if(Number.isFinite(it.lat) && Number.isFinite(it.lng)){
+      map.setView([it.lat,it.lng], 17);
+      const m = markersById.get(it.id);
+      if(m) showPopup(it, m);
+    }else{
+      // ピンが無いならジオコーディング促す
+      alert("この荷物はピン未作成です。住所があればピン化します。");
+      if(it.address) geocodeItem(it, true);
+    }
+  }, 80);
+}
+
+function highlightInList(id){
+  // 目印として軽くスクロール（簡易）
+  const el = document.querySelector(`[onclick="focusItem('${id}')"]`);
+  if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+/* ====== ジオコーディング（住所→緯度経度） ======
+   無料Nominatim：多投げ禁止なので間隔を空けます（業務ではGoogle等推奨）
+*/
+async function geocodeItem(it, autoRender=false){
+  if(!it.address) return;
+  // キャッシュ：同じ住所は再利用
+  const cached = items.find(x=>x.address===it.address && Number.isFinite(x.lat)&&Number.isFinite(x.lng));
+  if(cached && cached.id!==it.id){
+    it.lat=cached.lat; it.lng=cached.lng; it.geocodeAt=new Date().toLocaleString();
+    save();
+    if(autoRender){ renderList(); renderMap(true); }
+    return;
+  }
+
+  try{
+    flash("住所をピン化中…（少し待ってください）");
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(it.address)}`;
+    const res = await fetch(url, {headers: {"Accept":"application/json"}});
+    const js = await res.json();
+    if(!js || !js[0]) { flash("ピン化失敗：住所をもう少し詳しく入力してください"); return; }
+    it.lat = parseFloat(js[0].lat);
+    it.lng = parseFloat(js[0].lon);
+    it.geocodeAt = new Date().toLocaleString();
+    save();
+    flash("ピン化OK（地図に反映）");
+    if(autoRender){ renderList(); renderMap(true); }
+  }catch(e){
+    flash("ピン化失敗：ネット環境を確認してください");
+  }
+}
+
+async function batchGeocode(){
+  // 未ピンの住所ありを最大10件ずつ（制限対策）
+  const targets = items.filter(x=>x.address && !(Number.isFinite(x.lat)&&Number.isFinite(x.lng))).slice(0, 10);
+  if(!targets.length) return flash("未ピンの荷物がありません。");
+
+  flash(`一括ピン化開始：${targets.length}件（順に処理します）`);
+  for(let i=0;i<targets.length;i++){
+    await geocodeItem(targets[i], true);
+    await sleep(900); // 連投しない（重要）
+  }
+  flash("一括ピン化完了");
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* ====== Utils ====== */
+function esc(s){
+  return String(s??"")
     .replaceAll("&","&amp;").replaceAll("<","&lt;")
     .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 }
-function escapeAttr(str){ return escapeHtml(str); }
 
-// 初期描画
-render();
-
-// ページ離脱でカメラ停止
-window.addEventListener("beforeunload", stopScan);
+/* 初期 */
+renderList();
 </script>
 </body>
 </html>
