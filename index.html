@@ -8,25 +8,24 @@
 </head>
 <body>
 
+<div class="bgGlow"></div>
+
 <div class="container">
 
-  <!-- ===== TOP BAR ===== -->
   <div class="topbar">
     <div class="brand">
-      <div style="
-        width:38px;height:38px;border-radius:14px;
-        background:linear-gradient(180deg,rgba(255,214,10,.95),rgba(255,45,85,.55));
-        display:grid;place-items:center;font-weight:900;color:#111;
-      ">OFA</div>
+      <div class="logoChip">OFA</div>
       <div>
-        <div style="font-size:14px;font-weight:900;">OFA DELIVERY</div>
-        <small>ログインして開始</small>
+        <div class="brandTitle">OFA DELIVERY</div>
+        <small class="brandSub">ログインして開始</small>
       </div>
     </div>
     <span class="badge">PWA / Cloud DB</span>
   </div>
 
-  <!-- ===== LOGIN CARD ===== -->
+  <!-- エラー表示（ここに出る） -->
+  <div id="err" class="errBox" style="display:none;"></div>
+
   <div class="card">
     <div class="cardTitle">
       <strong>ログイン</strong>
@@ -45,8 +44,8 @@
     </div>
 
     <div class="btnRow">
-      <button class="btn primary" id="btnLogin">ログイン</button>
-      <button class="btn yellow" id="btnSignup">新規作成（管理者作成運用でもOK）</button>
+      <button class="btn primary" id="btnLogin" type="button">ログイン</button>
+      <button class="btn neon" id="btnSignup" type="button">新規作成（管理者作成運用でもOK）</button>
     </div>
 
     <hr class="sep" />
@@ -60,33 +59,49 @@
       ※最初に <b>Firebase設定</b> を <code>app.js</code> に貼ってください。
     </p>
   </div>
-
 </div>
 
-<!-- ===== App Logic (A案 app.js を import して使う) ===== -->
 <script type="module">
-  import { authLogin, authSignup } from "./app.js";
   const $ = (id) => document.getElementById(id);
+  const showErr = (msg) => {
+    const box = $("err");
+    box.style.display = "block";
+    box.textContent = msg;
+  };
 
-  $("btnLogin").onclick = async () => {
+  // app.js 読み込み失敗を画面に出す（ここが超大事）
+  let api;
+  try {
+    api = await import("./app.js");
+  } catch (e) {
+    showErr("app.jsの読み込みに失敗しました。\n\n" + (e?.message ?? String(e)) + "\n\n（app.jsがJSエラー/未コミット/キャッシュの可能性）");
+    throw e;
+  }
+
+  const authLogin = api.authLogin ?? window.login;
+  const authSignup = api.authSignup ?? window.register;
+
+  if (!authLogin || !authSignup) {
+    showErr("authLogin/authSignup が見つかりません。\napp.js がA案の全文になっているか確認してください。");
+  }
+
+  $("btnLogin").addEventListener("click", async () => {
     try {
       await authLogin($("email").value.trim(), $("pass").value);
       alert("ログインOK");
-      // 例：ログイン後に自動遷移したいなら👇
-      // location.href = "driver.html";
     } catch (e) {
       alert(e?.message ?? String(e));
     }
-  };
+  });
 
-  $("btnSignup").onclick = async () => {
+  $("btnSignup").addEventListener("click", async () => {
     try {
       await authSignup($("email").value.trim(), $("pass").value);
       alert("作成OK（ログイン済）");
     } catch (e) {
       alert(e?.message ?? String(e));
     }
-  };
+  });
 </script>
 
 </body>
